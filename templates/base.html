@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SAPNA CARTING - Fleet Management</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <meta name="htmx-config" content='{"csrfHeader": "X-CSRFToken"}'>
+    <style>
+        * { font-family: 'Inter', sans-serif; }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- Header -->
+    <header class="bg-slate-900 text-white shadow-lg">
+        <div class="container mx-auto px-4 py-4">
+            <div class="flex items-center justify-between">
+                <h1 class="text-2xl font-black">
+                    <span class="text-white">SAPNA</span>
+                    <span class="text-amber-500">CARTING</span>
+                </h1>
+                <nav>
+                    <!-- Navigation will be here -->
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container mx-auto px-4 py-8">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-slate-900 text-white mt-12 py-6">
+        <div class="container mx-auto px-4 text-center">
+            <p class="text-gray-400">© 2024 SAPNA CARTING. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <!-- Messages -->
+    {% if messages %}
+    <div id="messages" class="fixed bottom-4 right-4 z-50">
+        {% for message in messages %}
+        <div class="mb-2 p-4 rounded-lg shadow-lg {% if message.tags == 'error' %}bg-red-500{% elif message.tags == 'warning' %}bg-amber-500{% else %}bg-green-500{% endif %} text-white">
+            {{ message }}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+</body>
+</html>

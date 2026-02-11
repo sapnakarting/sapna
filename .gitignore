@@ -21,3 +21,48 @@ coverage/
 # Environment variables
 .env
 .env.*
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Django
+*.log
+*.pot
+*.pyc
+*.pyo
+*.pyd
+.Python
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Database
+db.sqlite3
+db.sqlite3-journal
+
+# Static and Media
+/static/
+/media/
+
+# Virtual environments
+/venv/
+/env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Django migrations
+*/migrations/0*.py
+!*/migrations/__init__.py
