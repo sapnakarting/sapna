@@ -17,12 +17,29 @@
     <header class="bg-slate-900 text-white shadow-lg">
         <div class="container mx-auto px-4 py-4">
             <div class="flex items-center justify-between">
-                <h1 class="text-2xl font-black">
+                <a href="{% url 'dashboard:index' %}" class="text-2xl font-black no-underline">
                     <span class="text-white">SAPNA</span>
                     <span class="text-amber-500">CARTING</span>
-                </h1>
+                </a>
                 <nav>
-                    <!-- Navigation will be here -->
+                    {% if user.is_authenticated %}
+                    <div class="flex items-center space-x-4">
+                        <span class="text-gray-300">Welcome, {{ user.username }}</span>
+                        {% if user.userprofile.is_admin %}
+                        <a href="{% url 'fleet:user-list' %}" class="text-white hover:text-amber-500 transition-colors font-semibold">Users</a>
+                        {% endif %}
+                        <form method="post" action="{% url 'logout' %}" class="inline">
+                            {% csrf_token %}
+                            <button type="submit" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-semibold transition-colors">
+                                Logout
+                            </button>
+                        </form>
+                    </div>
+                    {% else %}
+                    <a href="{% url 'login' %}" class="bg-amber-500 hover:bg-amber-600 text-white px-6 py-2 rounded-lg font-bold transition-colors">
+                        Login
+                    </a>
+                    {% endif %}
                 </nav>
             </div>
         </div>

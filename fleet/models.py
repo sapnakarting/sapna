@@ -8,6 +8,32 @@ from .utils.fuel_attribution import calculate_attribution_date
 from .utils.tire_mileage import calculate_current_mileage as calculate_tire_mileage
 
 
+class UserProfile(models.Model):
+    class Role(models.TextChoices):
+        ADMIN = 'ADMIN', 'Admin'
+        FUEL_AGENT = 'FUEL_AGENT', 'Fuel Agent'
+
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        primary_key=True,
+        related_name='userprofile'
+    )
+    role = models.CharField(max_length=20, choices=Role.choices, default=Role.FUEL_AGENT)
+    phone = models.CharField(max_length=20, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def is_admin(self):
+        return self.role == self.Role.ADMIN
+
+    def is_fuel_agent(self):
+        return self.role == self.Role.FUEL_AGENT
+
+    def __str__(self):
+        return f"{self.user.username} - {self.role}"
+
+
 class Truck(models.Model):
     class WheelConfig(models.TextChoices):
         TEN_WHEEL = "10_WHEEL", "10 Wheel"
