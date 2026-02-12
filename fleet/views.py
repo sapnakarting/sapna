@@ -4,11 +4,13 @@ from django.contrib.auth.models import User
 from django.contrib.auth.views import LogoutView as DjangoLogoutView
 from django.contrib import messages
 from django.shortcuts import render, redirect, get_object_or_404
+from django.urls import reverse_lazy
+from django.utils import timezone
 from django.views import View
 from django.views.generic import ListView, CreateView, UpdateView, DeleteView, DetailView
 from django.contrib.auth.mixins import LoginRequiredMixin
 
-from .forms import LoginForm, UserCreationForm, TruckSearchForm
+from .forms import LoginForm, UserCreationForm, TruckForm, TruckSearchForm
 from .models import UserProfile, Truck, FuelLog, TireInventory
 from .utils.permissions import is_admin_required
 
@@ -191,4 +193,82 @@ class TruckDetailView(LoginRequiredMixin, DetailView):
             truck=truck, status='MOUNTED'
         )
         return context
+
+
+class TruckCreateView(LoginRequiredMixin, CreateView):
+    model = Truck
+    form_class = TruckForm
+    template_name = 'fleet/truck_form.html'
+    success_url = reverse_lazy('truck-list')
+
+    def form_valid(self, form):
+        truck = form.save(commit=False)
+        truck.created_by = self.request.user
+        truck.save()
+        truck.status_history.append({
+            'status': truck.status,
+            'remarks': f'Truck created with status {truck.status}',
+            'date': timezone.now().isoformat()
+        })
+        truck.save()
+        messages.success(self.request, f'Truck {truck.plate_number} created successfully!')
+        return super().form_valid(form)
+
+
+class TruckUpdateView(LoginRequiredMixin, UpdateView):
+    model = Truck
+    form_class = TruckForm
+    template_name = 'fleet/truck_form.html'
+    success_url = reverse_lazy('truck-list')
+
+    def form_valid(self, form):
+        truck = form.save(commit=False)
+        old_status = Truck.objects.get(pk=self.object.pk).status
+        if old_status != truck.status:
+            truck.status_history.append({
+                'status': truck.status,
+                'remarks': f'Status changed from {old_status} to {truck.status}',
+                'date': timezone.now().isoformat()
+            })
+        truck.save()
+        messages.success(self.request, f'Truck {truck.plate_number} updated successfully!')
+        return super().form_valid(form)
+
+
+class TruckDeleteView(LoginRequiredMixin, DeleteView):
+    model = Truck
+    template_name = 'fleet/truck_delete.html'
+    success_url = reverse_lazy('truck-list')
+
+    def delete(self, request, *args, **kwargs):
+        truck = self.get_object()
+        plate_number = truck.plate_number
+        messages.success(self.request, f'Truck {plate_number} deleted successfully!')
+        return super().delete(request, *args, **kwargs)
+
+
+class TruckSearchView(LoginRequiredMixin, ListView):
+    model = Truck
+    template_name = 'fleet/truck_list_partial.html'
+    context_object_name = 'trucks'
+
+    def get_queryset(self):
+        queryset = Truck.objects.all().order_by('-created_at')
+        search = self.request.GET.get('search', '')
+        if search:
+            queryset = queryset.filter(
+                plate_number__icontains=search
+            ) | queryset.filter(
+                transporter_name__icontains=search
+            )
+        fleet_type = self.request.GET.get('fleet_type', '')
+        if fleet_type:
+            queryset = queryset.filter(fleet_type=fleet_type)
+        status = self.request.GET.get('status', '')
+        if status:
+            queryset = queryset.filter(status=status)
+        wheel_config = self.request.GET.get('wheel_config', '')
+        if wheel_config:
+            queryset = queryset.filter(wheel_config=wheel_config)
+        return queryset
 
