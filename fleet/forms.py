@@ -2,8 +2,9 @@ from django import forms
 from django.contrib.auth import authenticate
 from django.contrib.auth.forms import UserCreationForm as DjangoUserCreationForm
 from django.contrib.auth.models import User
+from django.utils import timezone
 
-from .models import Truck, Driver, FuelLog
+from .models import Truck, Driver, FuelLog, TireInventory
 
 
 class LoginForm(forms.Form):
@@ -252,3 +253,171 @@ class DieselPriceForm(forms.Form):
         if price <= 0:
             raise forms.ValidationError("Price must be greater than 0.")
         return price
+
+
+class TireInventoryForm(forms.ModelForm):
+    class Meta:
+        model = TireInventory
+        fields = [
+            'serial_number', 'brand', 'status', 'truck', 'position',
+            'purchase_cost', 'mounting_cost', 'repair_costs',
+            'mounted_at_odometer', 'scrap_reason'
+        ]
+        widgets = {
+            'purchase_cost': forms.NumberInput(attrs={'step': '0.01'}),
+            'mounting_cost': forms.NumberInput(attrs={'step': '0.01'}),
+            'repair_costs': forms.NumberInput(attrs={'step': '0.01'}),
+            'mounted_at_odometer': forms.NumberInput(attrs={'min': 0}),
+            'truck': forms.Select(attrs={'class': 'w-full px-4 py-2 border border-gray-300 rounded-xl'}),
+            'position': forms.Select(attrs={'class': 'w-full px-4 py-2 border border-gray-300 rounded-xl'}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for field_name, field in self.fields.items():
+            if field_name not in ['mounted_at_odometer', 'scrap_reason']:
+                field.widget.attrs.update({'class': 'w-full px-4 py-2 border border-gray-300 rounded-xl'})
+
+    def clean_serial_number(self):
+        serial = self.cleaned_data['serial_number'].upper().strip()
+        self.cleaned_data['serial_number'] = serial
+
+        # Check uniqueness if editing
+        if self.instance.pk:
+            if TireInventory.objects.filter(serial_number=serial).exclude(pk=self.instance.pk).exists():
+                raise forms.ValidationError("A tire with this serial number already exists.")
+        else:
+            if TireInventory.objects.filter(serial_number=serial).exists():
+                raise forms.ValidationError("A tire with this serial number already exists.")
+        return serial
+
+    def clean_mounted_at_odometer(self):
+        odo = self.cleaned_data['mounted_at_odometer']
+        truck = self.cleaned_data.get('truck')
+
+        if truck and odo and odo < truck.current_odometer:
+            raise forms.ValidationError(f"Mounting ODO ({odo}) is less than truck's current ODO ({truck.current_odometer})")
+        return odo
+
+    def clean(self):
+        cleaned_data = super().clean()
+
+        # Validate mount action
+        status = cleaned_data.get('status')
+        if status == 'MOUNTED':
+            if not cleaned_data.get('truck'):
+                self.add_error('truck', 'Truck must be selected for mounting.')
+            if not cleaned_data.get('position'):
+                self.add_error('position', 'Position must be selected for mounting.')
+            if not cleaned_data.get('mounted_at_odometer'):
+                self.add_error('mounted_at_odometer', 'Odometer reading is required for mounting.')
+
+        # Validate repair action
+        if status == 'REPAIR':
+            if not cleaned_data.get('repair_costs'):
+                cleaned_data['repair_costs'] = 0
+
+        # Validate scrap action
+        if status == 'SCRAPPED':
+            if not cleaned_data.get('scrap_reason'):
+                self.add_error('scrap_reason', 'Scrap reason is required for scrapping.')
+
+        return cleaned_data
+
+    def save(self, commit=True):
+        tire = super().save(commit=False)
+
+        # Add history entry for status change
+        status = tire.status
+        event = {
+            'status': status,
+            'date': timezone.now().isoformat(),
+        }
+
+        if status == 'MOUNTED':
+            event['odometer'] = tire.mounted_at_odometer
+            event['reason'] = f'Mounted at position {tire.position} on {tire.truck.plate_number}'
+
+        elif status == 'REPAIR':
+            event['reason'] = f'Repair done. Cost: ₹{tire.repair_costs}'
+
+        elif status == 'SCRAPPED':
+            event['reason'] = f'Scrapped. Reason: {tire.scrap_reason}'
+
+        if not tire.history:
+            tire.history = []
+
+        tire.history.append(event)
+
+        # Update truck odometer if mounting
+        if status == 'MOUNTED' and tire.truck and tire.mounted_at_odometer:
+            tire.truck.current_odometer = tire.mounted_at_odometer
+            tire.truck.save()
+
+        if commit:
+            tire.save()
+        return tire
+
+
+class TireActionForm(forms.Form):
+    ACTION_CHOICES = [
+        ('MOUNT', 'Mount Tire'),
+        ('UNMOUNT', 'Unmount Tire'),
+        ('REPAIR', 'Repair Tire'),
+        ('SCRAP', 'Scrap Tire'),
+    ]
+
+    action = forms.ChoiceField(choices=ACTION_CHOICES)
+    truck = forms.ModelChoiceField(queryset=Truck.objects.all(), required=False)
+    truck_odometer = forms.IntegerField(required=False, widget=forms.NumberInput(attrs={
+        'placeholder': 'Current ODO reading',
+        'class': 'w-full px-4 py-2 border border-gray-300 rounded-xl'
+    }))
+    position = forms.ChoiceField(choices=[
+        ('FL', 'Front Left (FL)'),
+        ('FR', 'Front Right (FR)'),
+        ('R1 Left Outside', 'R1 Left Outside'),
+        ('R1 Left Inside', 'R1 Left Inside'),
+        ('R1 Right Inside', 'R1 Right Inside'),
+        ('R1 Right Outside', 'R1 Right Outside'),
+    ], required=False)
+    repair_cost = forms.DecimalField(required=False, widget=forms.NumberInput(attrs={
+        'placeholder': 'Repair Cost (₹)',
+        'step': '0.01',
+        'class': 'w-full px-4 py-2 border border-gray-300 rounded-xl'
+    }))
+    scrap_reason = forms.CharField(widget=forms.Textarea(attrs={
+        'placeholder': 'Scrap reason',
+        'rows': 3,
+        'class': 'w-full px-4 py-2 border border-gray-300 rounded-xl'
+    }), required=False)
+    remarks = forms.CharField(widget=forms.Textarea(attrs={
+        'placeholder': 'Remarks',
+        'rows': 3,
+        'class': 'w-full px-4 py-2 border border-gray-300 rounded-xl'
+    }), required=False)
+
+
+class TireSearchForm(forms.Form):
+    STATUS_CHOICES = [
+        ('', 'All'),
+        ('NEW', 'NEW'),
+        ('MOUNTED', 'MOUNTED'),
+        ('SPARE', 'SPARE'),
+        ('REPAIR', 'REPAIR'),
+        ('SCRAPPED', 'SCRAPPED'),
+    ]
+
+    search = forms.CharField(required=False, widget=forms.TextInput(attrs={
+        'placeholder': 'Serial number, brand, or truck plate...',
+        'class': 'w-full px-4 py-2 border border-gray-300 rounded-xl'
+    }))
+
+    status_filter = forms.ChoiceField(choices=STATUS_CHOICES, required=False)
+    truck_filter = forms.ModelChoiceField(queryset=Truck.objects.all(), required=False)
+
+    sort_by = forms.ChoiceField(choices=[
+        ('serial_number', 'Serial Number'),
+        ('purchase_cost', 'Cost'),
+        ('created_at', 'Recently Added'),
+    ], required=False, initial='serial_number')
