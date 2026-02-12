@@ -1,0 +1,77 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="max-w-4xl mx-auto space-y-6">
+    <!-- Header -->
+    <div class="flex justify-between items-center">
+        <h1 class="text-3xl font-black text-slate-900">
+            {{ driver.name }}
+        </h1>
+        <div class="space-x-2">
+            <a href="{% url 'driver-update' driver.id %}" 
+                class="bg-slate-900 text-white px-6 py-3 rounded-xl font-bold hover:bg-slate-800">
+                Edit Driver
+            </a>
+            <a href="{% url 'driver-list' %}" 
+                class="bg-gray-200 text-gray-700 px-6 py-3 rounded-xl font-bold hover:bg-gray-300">
+                Back to List
+            </a>
+        </div>
+    </div>
+    
+    <!-- Driver Info -->
+    <div class="bg-white p-8 rounded-2xl shadow-lg">
+        <h2 class="text-xl font-bold text-slate-900 mb-4">Driver Information</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+                <label class="block text-sm font-semibold text-gray-600">License Number</label>
+                <p class="font-bold text-lg font-mono">{{ driver.license_number }}</p>
+            </div>
+            <div>
+                <label class="block text-sm font-semibold text-gray-600">Phone</label>
+                <p class="font-bold text-lg">{{ driver.phone|default:"Not Set" }}</p>
+            </div>
+            <div>
+                <label class="block text-sm font-semibold text-gray-600">Status</label>
+                <p class="font-bold text-lg">{{ driver.status }}</p>
+            </div>
+            <div>
+                <label class="block text-sm font-semibold text-gray-600">Driver Type</label>
+                <p class="font-bold text-lg">{{ driver.driver_type }}</p>
+            </div>
+            <div>
+                <label class="block text-sm font-semibold text-gray-600">Created</label>
+                <p class="font-bold text-lg">{{ driver.created_at|date:"d-m-Y" }}</p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Recent Fuel Logs -->
+    {% if recent_fuel_logs %}
+    <div class="bg-white p-8 rounded-2xl shadow-lg">
+        <h2 class="text-xl font-bold text-slate-900 mb-4">Recent Fuel Logs</h2>
+        {% if recent_fuel_logs %}
+        <div class="space-y-3">
+            {% for log in recent_fuel_logs %}
+            <div class="p-4 bg-gray-50 rounded-xl">
+                <div class="flex justify-between items-center mb-2">
+                    <div class="font-bold">{{ log.truck.plate_number }}</div>
+                    <div class="text-sm text-gray-500">{{ log.date|date:"d-m-Y" }}</div>
+                </div>
+                <div class="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                        <span class="text-gray-600">Odometer:</span> {{ log.odometer }} km
+                    </div>
+                    <div>
+                        <span class="text-gray-600">Fuel:</span> {{ log.fuel_liters }} L
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="text-gray-500">No fuel logs recorded for this driver yet.</p>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
