@@ -1,0 +1,239 @@
+{% extends 'base.html' %}
+
+{% block title %}Tire {{ tire.serial_number }} - SAPNA CARTING{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="flex justify-between items-start mb-6">
+        <div>
+            <h1 class="text-3xl font-bold text-gray-800">Tire {{ tire.serial_number }}</h1>
+            <div class="mt-2">
+                <span class="px-3 py-1 inline-flex text-sm leading-5 font-semibold rounded-full 
+                    {% if tire.status == 'MOUNTED' %}bg-green-100 text-green-800
+                    {% elif tire.status == 'SPARE' %}bg-amber-100 text-amber-800
+                    {% elif tire.status == 'REPAIR' %}bg-red-100 text-red-800
+                    {% elif tire.status == 'SCRAPPED' %}bg-gray-100 text-gray-800
+                    {% else %}bg-blue-100 text-blue-800
+                    {% endif %}">
+                    {{ tire.status }}
+                </span>
+            </div>
+        </div>
+        <div class="flex gap-2">
+            <a href="{% url 'tire-update' tire.pk %}" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl transition-colors">Edit</a>
+            <a href="{% url 'tire-delete' tire.pk %}" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-xl transition-colors">Delete</a>
+            <a href="{% url 'tire-list' %}" class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-xl transition-colors">Back to List</a>
+        </div>
+    </div>
+
+    <!-- Metrics Dashboard -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <div class="bg-white p-4 rounded-xl shadow border">
+            <div class="text-sm text-gray-500">Total Cost</div>
+            <div class="text-2xl font-bold text-gray-800">₹{{ total_cost|floatformat:2 }}</div>
+        </div>
+        <div class="bg-white p-4 rounded-xl shadow border">
+            <div class="text-sm text-gray-500">Cost per KM</div>
+            <div class="text-2xl font-bold text-slate-600">₹{{ cost_per_km|floatformat:2 }}</div>
+        </div>
+        <div class="bg-white p-4 rounded-xl shadow border">
+            <div class="text-sm text-gray-500">Current Mileage</div>
+            <div class="text-2xl font-bold text-gray-800">{{ current_mileage }} km</div>
+        </div>
+        <div class="bg-white p-4 rounded-xl shadow border">
+            <div class="text-sm text-gray-500">Brand</div>
+            <div class="text-2xl font-bold text-gray-800">{{ tire.brand }}</div>
+        </div>
+    </div>
+
+    <!-- Tire Information -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+        <div class="bg-white p-6 rounded-xl shadow border">
+            <h3 class="text-lg font-semibold text-gray-800 mb-4">Tire Details</h3>
+            <div class="space-y-3">
+                <div class="flex justify-between">
+                    <div class="text-gray-500">Serial Number:</div>
+                    <div class="font-medium text-gray-800">{{ tire.serial_number }}</div>
+                </div>
+                <div class="flex justify-between">
+                    <div class="text-gray-500">Brand:</div>
+                    <div class="font-medium text-gray-800">{{ tire.brand }}</div>
+                </div>
+                <div class="flex justify-between">
+                    <div class="text-gray-500">Status:</div>
+                    <div class="font-medium text-gray-800">{{ tire.status }}</div>
+                </div>
+                <div class="flex justify-between">
+                    <div class="text-gray-500">Purchase Cost:</div>
+                    <div class="font-medium text-gray-800">₹{{ tire.purchase_cost|floatformat:2 }}</div>
+                </div>
+                <div class="flex justify-between">
+                    <div class="text-gray-500">Mounting Cost:</div>
+                    <div class="font-medium text-gray-800">₹{{ tire.mounting_cost|floatformat:2 }}</div>
+                </div>
+                <div class="flex justify-between">
+                    <div class="text-gray-500">Repair Costs:</div>
+                    <div class="font-medium text-gray-800">₹{{ tire.repair_costs|floatformat:2 }}</div>
+                </div>
+            </div>
+        </div>
+
+        {% if truck_info %}
+        <div class="bg-white p-6 rounded-xl shadow border">
+            <h3 class="text-lg font-semibold text-gray-800 mb-4">Truck Information</h3>
+            <div class="space-y-3">
+                <div class="flex justify-between">
+                    <div class="text-gray-500">Plate Number:</div>
+                    <div class="font-medium text-gray-800">{{ truck_info.plate_number }}</div>
+                </div>
+                <div class="flex justify-between">
+                    <div class="text-gray-500">Transporter:</div>
+                    <div class="font-medium text-gray-800">{{ truck_info.transporter }}</div>
+                </div>
+                <div class="flex justify-between">
+                    <div class="text-gray-500">Wheel Config:</div>
+                    <div class="font-medium text-gray-800">{{ truck_info.wheel_config }}</div>
+                </div>
+                <div class="flex justify-between">
+                    <div class="text-gray-500">Current Odometer:</div>
+                    <div class="font-medium text-gray-800">{{ truck_info.current_odometer }} km</div>
+                </div>
+                <div class="flex justify-between">
+                    <div class="text-gray-500">Position:</div>
+                    <div class="font-medium text-gray-800">{{ tire.position }}</div>
+                </div>
+                <div class="flex justify-between">
+                    <div class="text-gray-500">Mounted at ODO:</div>
+                    <div class="font-medium text-gray-800">{{ tire.mounted_at_odometer|default:"-" }} km</div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- History Timeline -->
+    <div class="bg-white p-6 rounded-xl shadow border mb-6">
+        <h3 class="text-lg font-semibold text-gray-800 mb-4">History Timeline</h3>
+        <div class="space-y-4">
+            {% for event in history %}
+            <div class="border-l-4 border-slate-300 pl-4">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <div class="text-sm text-gray-500">{{ event.date|date:"M d, Y H:i" }}</div>
+                        <div class="font-medium text-gray-800">{{ event.status }}</div>
+                        {% if event.reason %}
+                        <div class="text-sm text-gray-600 mt-1">{{ event.reason }}</div>
+                        {% endif %}
+                        {% if event.odometer %}
+                        <div class="text-sm text-gray-500 mt-1">Odometer: {{ event.odometer }} km</div>
+                        {% endif %}
+                        {% if event.cost %}
+                        <div class="text-sm text-gray-500 mt-1">Cost: ₹{{ event.cost|floatformat:2 }}</div>
+                        {% endif %}
+                    </div>
+                    <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full 
+                        {% if event.status == 'MOUNTED' %}bg-green-100 text-green-800
+                        {% elif event.status == 'SPARE' %}bg-amber-100 text-amber-800
+                        {% elif event.status == 'REPAIR' %}bg-red-100 text-red-800
+                        {% elif event.status == 'SCRAPPED' %}bg-gray-100 text-gray-800
+                        {% else %}bg-blue-100 text-blue-800
+                        {% endif %}">
+                        {{ event.status }}
+                    </span>
+                </div>
+            </div>
+            {% empty %}
+            <div class="text-center text-gray-500 py-4">No history events recorded.</div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="bg-white p-6 rounded-xl shadow border">
+        <h3 class="text-lg font-semibold text-gray-800 mb-4">Quick Actions</h3>
+        <div class="flex flex-wrap gap-3">
+            {% if tire.status == 'NEW' %}
+            <button class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-xl transition-colors" 
+                    onclick="openActionModal('MOUNT')">
+                Mount Tire
+            </button>
+            {% endif %}
+            
+            {% if tire.status == 'MOUNTED' %}
+            <button class="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-xl transition-colors" 
+                    onclick="openActionModal('UNMOUNT')">
+                Unmount Tire
+            </button>
+            <button class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-xl transition-colors" 
+                    onclick="openActionModal('REPAIR')">
+                Repair Tire
+            </button>
+            {% endif %}
+            
+            {% if tire.status == 'SPARE' or tire.status == 'REPAIR' %}
+            <button class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-xl transition-colors" 
+                    onclick="openActionModal('MOUNT')">
+                Mount Tire
+            </button>
+            {% endif %}
+            
+            {% if tire.status != 'SCRAPPED' %}
+            <button class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-xl transition-colors" 
+                    onclick="openActionModal('SCRAP')">
+                Scrap Tire
+            </button>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Action Modal -->
+<div id="action-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden justify-center items-center z-50">
+    <div class="bg-white rounded-xl p-6 max-w-md w-full mx-4 max-h-[80vh] overflow-y-auto">
+        <div class="flex justify-between items-center mb-4">
+            <h3 id="modal-title" class="text-lg font-semibold text-gray-800">Tire Action</h3>
+            <button onclick="closeActionModal()" class="text-gray-400 hover:text-gray-600">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+        </div>
+        <div id="modal-content"></div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function openActionModal(action) {
+        const modal = document.getElementById('action-modal');
+        const title = document.getElementById('modal-title');
+        const content = document.getElementById('modal-content');
+        
+        title.textContent = action.charAt(0).toUpperCase() + action.slice(1).toLowerCase() + ' Tire';
+        
+        // Fetch the action form
+        fetch(`{% url 'tire-action' tire.pk %}?action=${action}`)
+            .then(response => response.text())
+            .then(html => {
+                content.innerHTML = html;
+                modal.classList.remove('hidden');
+                modal.classList.add('flex');
+            });
+    }
+    
+    function closeActionModal() {
+        const modal = document.getElementById('action-modal');
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+    }
+    
+    // Close modal when clicking outside
+    document.getElementById('action-modal').addEventListener('click', function(e) {
+        if (e.target === this) {
+            closeActionModal();
+        }
+    });
+</script>
+{% endblock %}
