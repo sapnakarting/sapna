@@ -1,0 +1,78 @@
+<div class="overflow-x-auto">
+    <table class="w-full">
+        <thead class="bg-slate-900 text-white">
+            <tr>
+                <th class="px-6 py-4 text-left font-bold">Plate Number</th>
+                <th class="px-6 py-4 text-left font-bold">Transporter</th>
+                <th class="px-6 py-4 text-left font-bold">Type</th>
+                <th class="px-6 py-4 text-left font-bold">Wheel</th>
+                <th class="px-6 py-4 text-left font-bold">Status</th>
+                <th class="px-6 py-4 text-left font-bold">ODO</th>
+                <th class="px-6 py-4 text-left font-bold">Expiry</th>
+                <th class="px-6 py-4 text-left font-bold">Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for truck in trucks %}
+            <tr class="border-b hover:bg-gray-50">
+                <td class="px-6 py-4">
+                    <div class="font-bold text-lg">{{ truck.plate_number }}</div>
+                    {% if truck.fleet_type == 'MINING' %}
+                    <span class="text-xs px-2 py-1 rounded-full 
+                        {% if truck.mining_type == 'INTERNAL' %}bg-blue-100 text-blue-800
+                        {% else %}bg-purple-100 text-purple-800{% endif %}">
+                        {{ truck.mining_type }}
+                    </span>
+                    {% endif %}
+                </td>
+                <td class="px-6 py-4">{{ truck.transporter_name }}</td>
+                <td class="px-6 py-4">
+                    <span class="px-3 py-1 rounded-full text-sm font-bold
+                        {% if truck.fleet_type == 'COAL' %}bg-green-100 text-green-800
+                        {% else %}bg-blue-100 text-blue-800{% endif %}">
+                        {{ truck.fleet_type }}
+                    </span>
+                </td>
+                <td class="px-6 py-4">{{ truck.get_wheel_config_display }}</td>
+                <td class="px-6 py-4">
+                    <span class="px-3 py-1 rounded-full text-sm font-bold
+                        {% if truck.status == 'ACTIVE' %}bg-green-100 text-green-800
+                        {% elif truck.status == 'INACTIVE' %}bg-red-100 text-red-800
+                        {% else %}bg-amber-100 text-amber-800{% endif %}">
+                        {{ truck.status }}
+                    </span>
+                </td>
+                <td class="px-6 py-4 font-bold">{{ truck.current_odometer }}</td>
+                <td class="px-6 py-4">
+                    {% with color=truck.get_expiry_color_code %}
+                    <span class="px-2 py-1 rounded text-sm font-bold
+                        {% if color == 'red' %}bg-red-100 text-red-700
+                        {% elif color == 'amber' %}bg-amber-100 text-amber-700
+                        {% else %}bg-green-100 text-green-700{% endif %}">
+                        {{ color|upper }}
+                    </span>
+                    {% endwith %}
+                </td>
+                <td class="px-6 py-4 space-x-2">
+                    <a href="{% url 'truck-detail' truck.id %}" 
+                        class="text-blue-600 hover:underline">View</a>
+                    <a href="{% url 'truck-update' truck.id %}" 
+                        class="text-green-600 hover:underline">Edit</a>
+                    <a href="{% url 'truck-delete' truck.id %}" 
+                        class="text-red-600 hover:underline">Delete</a>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="8" class="px-6 py-8 text-center text-gray-500">
+                    {% if request.GET.search or request.GET.fleet_type %}
+                        No trucks match your search criteria.
+                    {% else %}
+                        No trucks found. Add your first truck!
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>

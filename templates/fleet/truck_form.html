@@ -1,0 +1,105 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <h1 class="text-3xl font-black text-slate-900 mb-6">
+        {% if form.instance.pk %}Edit Truck{% else %}Add New Truck{% endif %}
+    </h1>
+    
+    <form method="post" class="bg-white p-8 rounded-2xl shadow-lg space-y-6">
+        {% csrf_token %}
+        
+        <!-- Basic Info -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-2">Plate Number *</label>
+                {{ form.plate_number }}
+            </div>
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-2">Transporter Name *</label>
+                {{ form.transporter_name }}
+            </div>
+        </div>
+        
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-2">Fleet Type *</label>
+                {{ form.fleet_type }}
+            </div>
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-2">Wheel Config *</label>
+                {{ form.wheel_config }}
+            </div>
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-2">Status *</label>
+                {{ form.status }}
+            </div>
+        </div>
+        
+        <!-- Mining Type (only for MINING) -->
+        <div id="mining-type-field" class="hidden">
+            <label class="block text-sm font-semibold text-gray-700 mb-2">Mining Type *</label>
+            {{ form.mining_type }}
+        </div>
+        
+        <!-- Current Odometer -->
+        <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-2">Current Odometer (km) *</label>
+            {{ form.current_odometer }}
+        </div>
+        
+        <!-- Document Expiry Dates -->
+        <h3 class="text-xl font-bold text-slate-900">Document Expiry</h3>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-2">Fitness Expiry</label>
+                {{ form.fitness_expiry }}
+            </div>
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-2">Insurance Expiry</label>
+                {{ form.insurance_expiry }}
+            </div>
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-2">PUCC Expiry</label>
+                {{ form.pucc_expiry }}
+            </div>
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-2">Tax Expiry</label>
+                {{ form.tax_expiry }}
+            </div>
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-2">Permit Expiry</label>
+                {{ form.permit_expiry }}
+            </div>
+        </div>
+        
+        <!-- Remarks -->
+        <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-2">Remarks</label>
+            {{ form.remarks }}
+        </div>
+        
+        <div class="flex space-x-4">
+            <button type="submit" 
+                class="flex-1 bg-slate-900 text-white py-3 px-6 rounded-xl font-bold hover:bg-slate-800">
+                Save Truck
+            </button>
+            <a href="{% url 'truck-list' %}" 
+                class="flex-1 bg-gray-200 text-gray-700 py-3 px-6 rounded-xl font-bold hover:bg-gray-300 text-center">
+                Cancel
+            </a>
+        </div>
+    </form>
+</div>
+
+<script>
+// Show mining type field only when fleet_type is MINING
+document.querySelector('[name="fleet_type"]').addEventListener('change', function() {
+    const miningField = document.getElementById('mining-type-field');
+    if (this.value === 'MINING') {
+        miningField.classList.remove('hidden');
+    } else {
+        miningField.classList.add('hidden');
+    }
+});
+</script>
+{% endblock %}
