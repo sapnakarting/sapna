@@ -21,12 +21,24 @@ class Command(BaseCommand):
         if created:
             admin.set_password('admin123')
             admin.save()
-            UserProfile.objects.create(
-                user=admin,
-                role='ADMIN',
-                phone=''
-            )
+        
+        # Create or update admin profile
+        profile, profile_created = UserProfile.objects.get_or_create(
+            user=admin,
+            defaults={
+                'role': 'ADMIN',
+                'phone': ''
+            }
+        )
+        # Ensure the profile has the correct role
+        if profile.role != 'ADMIN':
+            profile.role = 'ADMIN'
+            profile.save()
+        
+        if created and profile_created:
             self.stdout.write(self.style.SUCCESS('Created admin user (admin/admin123)'))
+        elif created:
+            self.stdout.write(self.style.SUCCESS('Created admin user (admin/admin123), profile already existed'))
         else:
             self.stdout.write(self.style.WARNING('Admin user already exists'))
 
@@ -42,11 +54,23 @@ class Command(BaseCommand):
         if created:
             agent.set_password('fuel123')
             agent.save()
-            UserProfile.objects.create(
-                user=agent,
-                role='FUEL_AGENT',
-                phone=''
-            )
+        
+        # Create or update fuel agent profile
+        profile, profile_created = UserProfile.objects.get_or_create(
+            user=agent,
+            defaults={
+                'role': 'FUEL_AGENT',
+                'phone': ''
+            }
+        )
+        # Ensure the profile has the correct role
+        if profile.role != 'FUEL_AGENT':
+            profile.role = 'FUEL_AGENT'
+            profile.save()
+        
+        if created and profile_created:
             self.stdout.write(self.style.SUCCESS('Created fuel agent user (fuel_agent/fuel123)'))
+        elif created:
+            self.stdout.write(self.style.SUCCESS('Created fuel agent user (fuel_agent/fuel123), profile already existed'))
         else:
             self.stdout.write(self.style.WARNING('Fuel agent user already exists'))
