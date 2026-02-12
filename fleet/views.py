@@ -10,8 +10,8 @@ from django.views import View
 from django.views.generic import ListView, CreateView, UpdateView, DeleteView, DetailView
 from django.contrib.auth.mixins import LoginRequiredMixin
 
-from .forms import LoginForm, UserCreationForm, TruckForm, TruckSearchForm
-from .models import UserProfile, Truck, FuelLog, TireInventory
+from .forms import LoginForm, UserCreationForm, TruckForm, TruckSearchForm, DriverForm
+from .models import UserProfile, Truck, Driver, FuelLog, TireInventory
 from .utils.permissions import is_admin_required
 
 
@@ -271,4 +271,81 @@ class TruckSearchView(LoginRequiredMixin, ListView):
         if wheel_config:
             queryset = queryset.filter(wheel_config=wheel_config)
         return queryset
+
+
+class DriverListView(LoginRequiredMixin, ListView):
+    model = Driver
+    template_name = 'fleet/driver_list.html'
+    context_object_name = 'drivers'
+    paginate_by = 20
+
+    def get_queryset(self):
+        queryset = Driver.objects.all().order_by('-created_at')
+        status = self.request.GET.get('status', '')
+        if status:
+            queryset = queryset.filter(status=status)
+        driver_type = self.request.GET.get('driver_type', '')
+        if driver_type:
+            queryset = queryset.filter(driver_type=driver_type)
+        search = self.request.GET.get('search', '')
+        if search:
+            queryset = queryset.filter(
+                name__icontains=search
+            ) | queryset.filter(
+                license_number__icontains=search
+            )
+        return queryset
+
+
+class DriverDetailView(LoginRequiredMixin, DetailView):
+    model = Driver
+    template_name = 'fleet/driver_detail.html'
+    context_object_name = 'driver'
+    pk_url_kwarg = 'pk'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        driver = self.object
+        context['recent_fuel_logs'] = FuelLog.objects.filter(
+            driver=driver
+        ).order_by('-created_at')[:5]
+        return context
+
+
+class DriverCreateView(LoginRequiredMixin, CreateView):
+    model = Driver
+    form_class = DriverForm
+    template_name = 'fleet/driver_form.html'
+    success_url = reverse_lazy('driver-list')
+
+    def form_valid(self, form):
+        driver = form.save(commit=False)
+        driver.created_by = self.request.user
+        driver.save()
+        messages.success(self.request, f'Driver {driver.name} created successfully!')
+        return super().form_valid(form)
+
+
+class DriverUpdateView(LoginRequiredMixin, UpdateView):
+    model = Driver
+    form_class = DriverForm
+    template_name = 'fleet/driver_form.html'
+    success_url = reverse_lazy('driver-list')
+
+    def form_valid(self, form):
+        driver = form.save()
+        messages.success(self.request, f'Driver {driver.name} updated successfully!')
+        return super().form_valid(form)
+
+
+class DriverDeleteView(LoginRequiredMixin, DeleteView):
+    model = Driver
+    template_name = 'fleet/driver_delete.html'
+    success_url = reverse_lazy('driver-list')
+
+    def delete(self, request, *args, **kwargs):
+        driver = self.get_object()
+        name = driver.name
+        messages.success(self.request, f'Driver {name} deleted successfully!')
+        return super().delete(request, *args, **kwargs)
 
