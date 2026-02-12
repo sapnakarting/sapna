@@ -5,10 +5,11 @@ from django.contrib.auth.views import LogoutView as DjangoLogoutView
 from django.contrib import messages
 from django.shortcuts import render, redirect, get_object_or_404
 from django.views import View
-from django.views.generic import ListView, CreateView, UpdateView, DeleteView
+from django.views.generic import ListView, CreateView, UpdateView, DeleteView, DetailView
+from django.contrib.auth.mixins import LoginRequiredMixin
 
-from .forms import LoginForm, UserCreationForm
-from .models import UserProfile
+from .forms import LoginForm, UserCreationForm, TruckSearchForm
+from .models import UserProfile, Truck, FuelLog, TireInventory
 from .utils.permissions import is_admin_required
 
 
@@ -134,4 +135,60 @@ class UserDeleteView(DeleteView):
         user = self.get_object()
         messages.success(self.request, f'User "{user.username}" deleted successfully.')
         return super().delete(request, *args, **kwargs)
+
+
+class TruckListView(LoginRequiredMixin, ListView):
+    model = Truck
+    template_name = 'fleet/truck_list.html'
+    context_object_name = 'trucks'
+    paginate_by = 20
+    
+    def get_queryset(self):
+        queryset = Truck.objects.all().order_by('-created_at')
+        # Apply search filter
+        search = self.request.GET.get('search', '')
+        if search:
+            queryset = queryset.filter(
+                plate_number__icontains=search
+            ) | queryset.filter(
+                transporter_name__icontains=search
+            )
+        # Apply fleet type filter
+        fleet_type = self.request.GET.get('fleet_type', '')
+        if fleet_type:
+            queryset = queryset.filter(fleet_type=fleet_type)
+        # Apply status filter
+        status = self.request.GET.get('status', '')
+        if status:
+            queryset = queryset.filter(status=status)
+        # Apply wheel config filter
+        wheel_config = self.request.GET.get('wheel_config', '')
+        if wheel_config:
+            queryset = queryset.filter(wheel_config=wheel_config)
+        return queryset
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['search_form'] = TruckSearchForm(self.request.GET)
+        return context
+
+
+class TruckDetailView(LoginRequiredMixin, DetailView):
+    model = Truck
+    template_name = 'fleet/truck_detail.html'
+    context_object_name = 'truck'
+    pk_url_kwarg = 'pk'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        truck = self.object
+        # Get recent fuel logs for this truck
+        context['recent_fuel_logs'] = FuelLog.objects.filter(
+            truck=truck
+        ).order_by('-created_at')[:5]
+        # Get current tires mounted on this truck
+        context['current_tires'] = TireInventory.objects.filter(
+            truck=truck, status='MOUNTED'
+        )
+        return context
 
