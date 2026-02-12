@@ -3,7 +3,7 @@ from django.contrib.auth import authenticate
 from django.contrib.auth.forms import UserCreationForm as DjangoUserCreationForm
 from django.contrib.auth.models import User
 
-from .models import Truck, Driver
+from .models import Truck, Driver, FuelLog
 
 
 class LoginForm(forms.Form):
@@ -197,3 +197,58 @@ class DriverForm(forms.ModelForm):
         if commit:
             driver.save()
         return driver
+
+
+class FuelLogForm(forms.ModelForm):
+    class Meta:
+        model = FuelLog
+        fields = ['truck', 'driver', 'date', 'entry_type', 'odometer',
+                  'fuel_liters', 'diesel_price', 'verification_photos']
+        widgets = {
+            'date': forms.DateInput(attrs={'type': 'date'}),
+            'truck': forms.Select(attrs={'class': 'w-full px-4 py-2 border border-gray-300 rounded-xl'}),
+            'driver': forms.Select(attrs={'class': 'w-full px-4 py-2 border border-gray-300 rounded-xl'}),
+            'entry_type': forms.RadioSelect(attrs={
+                'class': 'flex space-x-4',
+            }),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for field_name, field in self.fields.items():
+            if field_name not in ['verification_photos']:
+                field.widget.attrs.update({'class': 'w-full px-4 py-2 border border-gray-300 rounded-xl'})
+
+    def clean_odometer(self):
+        odometer = self.cleaned_data['odometer']
+        truck = self.cleaned_data.get('truck')
+        if truck and odometer < truck.current_odometer:
+            raise forms.ValidationError(f"Odometer reading ({odometer}) is less than truck's current ODO ({truck.current_odometer})")
+        return odometer
+
+    def save(self, commit=True):
+        fuel_log = super().save(commit=False)
+        # Calculate attribution date based on entry type
+        from .utils.fuel_attribution import calculate_attribution_date
+        fuel_log.attribution_date = calculate_attribution_date(fuel_log.date, fuel_log.entry_type)
+        # Calculate fuel cost
+        fuel_log.fuel_cost = (fuel_log.fuel_liters or 0) * (fuel_log.diesel_price or 0)
+        # Set fueling agent
+        fuel_log.fueling_agent = self.request.user if hasattr(self, 'request') else None
+        if commit:
+            fuel_log.save()
+        return fuel_log
+
+
+class DieselPriceForm(forms.Form):
+    date = forms.DateField(widget=forms.DateInput(attrs={'type': 'date'}))
+    price = forms.DecimalField(max_digits=6, decimal_places=2, widget=forms.NumberInput(attrs={
+        'placeholder': 'Price per liter (₹)',
+        'class': 'w-full px-4 py-2 border border-gray-300 rounded-xl'
+    }))
+
+    def clean_price(self):
+        price = self.cleaned_data['price']
+        if price <= 0:
+            raise forms.ValidationError("Price must be greater than 0.")
+        return price
