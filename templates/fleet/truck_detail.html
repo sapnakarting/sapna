@@ -1,0 +1,138 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="max-w-6xl mx-auto space-y-6">
+    <!-- Header -->
+    <div class="flex justify-between items-center">
+        <h1 class="text-3xl font-black text-slate-900">
+            {{ truck.plate_number }}
+        </h1>
+        <div class="space-x-2">
+            <a href="{% url 'truck-update' truck.id %}" 
+                class="bg-slate-900 text-white px-6 py-3 rounded-xl font-bold hover:bg-slate-800">
+                Edit Truck
+            </a>
+            <a href="{% url 'truck-list' %}" 
+                class="bg-gray-200 text-gray-700 px-6 py-3 rounded-xl font-bold hover:bg-gray-300">
+                Back to List
+            </a>
+        </div>
+    </div>
+    
+    <!-- Truck Info -->
+    <div class="bg-white p-8 rounded-2xl shadow-lg">
+        <h2 class="text-xl font-bold text-slate-900 mb-4">Truck Information</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div>
+                <label class="block text-sm font-semibold text-gray-600">Transporter Name</label>
+                <p class="font-bold text-lg">{{ truck.transporter_name }}</p>
+            </div>
+            <div>
+                <label class="block text-sm font-semibold text-gray-600">Fleet Type</label>
+                <p class="font-bold text-lg">{{ truck.fleet_type }}</p>
+                {% if truck.fleet_type == 'MINING' %}
+                <p class="text-sm text-gray-500">{{ truck.mining_type }}</p>
+                {% endif %}
+            </div>
+            <div>
+                <label class="block text-sm font-semibold text-gray-600">Wheel Configuration</label>
+                <p class="font-bold text-lg">{{ truck.get_wheel_config_display }}</p>
+            </div>
+            <div>
+                <label class="block text-sm font-semibold text-gray-600">Status</label>
+                <p class="font-bold text-lg">{{ truck.status }}</p>
+            </div>
+            <div>
+                <label class="block text-sm font-semibold text-gray-600">Current Odometer</label>
+                <p class="font-bold text-lg">{{ truck.current_odometer }} km</p>
+            </div>
+            <div>
+                <label class="block text-sm font-semibold text-gray-600">Created</label>
+                <p class="font-bold text-lg">{{ truck.created_at|date:"d-m-Y" }}</p>
+            </div>
+        </div>
+        
+        {% if truck.remarks %}
+        <div class="mt-6">
+            <label class="block text-sm font-semibold text-gray-600">Remarks</label>
+            <p class="text-gray-700">{{ truck.remarks }}</p>
+        </div>
+        {% endif %}
+    </div>
+    
+    <!-- Documents -->
+    <div class="bg-white p-8 rounded-2xl shadow-lg">
+        <h2 class="text-xl font-bold text-slate-900 mb-4">Document Expiry</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div class="p-4 rounded-xl border-2
+                {% with color=truck.get_expiry_color_code|truck.fitness_expiry %}
+                {% if color == 'red' %}border-red-500 bg-red-50
+                {% elif color == 'amber' %}border-amber-500 bg-amber-50
+                {% else %}border-green-500 bg-green-50{% endif %}
+                {% endwith %}">
+                <label class="block text-sm font-semibold text-gray-600">Fitness</label>
+                <p class="font-bold">{{ truck.fitness_expiry|date:"d-m-Y"|default:"Not Set" }}</p>
+            </div>
+            
+            <div class="p-4 rounded-xl border-2
+                {% with color=truck.get_expiry_color_code|truck.insurance_expiry %}
+                {% if color == 'red' %}border-red-500 bg-red-50
+                {% elif color == 'amber' %}border-amber-500 bg-amber-50
+                {% else %}border-green-500 bg-green-50{% endif %}
+                {% endwith %}">
+                <label class="block text-sm font-semibold text-gray-600">Insurance</label>
+                <p class="font-bold">{{ truck.insurance_expiry|date:"d-m-Y"|default:"Not Set" }}</p>
+            </div>
+            
+            <div class="p-4 rounded-xl border-2
+                {% with color=truck.get_expiry_color_code|truck.pucc_expiry %}
+                {% if color == 'red' %}border-red-500 bg-red-50
+                {% elif color == 'amber' %}border-amber-500 bg-amber-50
+                {% else %}border-green-500 bg-green-50{% endif %}
+                {% endwith %}">
+                <label class="block text-sm font-semibold text-gray-600">PUCC</label>
+                <p class="font-bold">{{ truck.pucc_expiry|date:"d-m-Y"|default:"Not Set" }}</p>
+            </div>
+            
+            <div class="p-4 rounded-xl border-2
+                {% with color=truck.get_expiry_color_code|truck.tax_expiry %}
+                {% if color == 'red' %}border-red-500 bg-red-50
+                {% elif color == 'amber' %}border-amber-500 bg-amber-50
+                {% else %}border-green-500 bg-green-50{% endif %}
+                {% endwith %}">
+                <label class="block text-sm font-semibold text-gray-600">Tax</label>
+                <p class="font-bold">{{ truck.tax_expiry|date:"d-m-Y"|default:"Not Set" }}</p>
+            </div>
+            
+            <div class="p-4 rounded-xl border-2
+                {% with color=truck.get_expiry_color_code|truck.permit_expiry %}
+                {% if color == 'red' %}border-red-500 bg-red-50
+                {% elif color == 'amber' %}border-amber-500 bg-amber-50
+                {% else %}border-green-500 bg-green-50{% endif %}
+                {% endwith %}">
+                <label class="block text-sm font-semibold text-gray-600">Permit</label>
+                <p class="font-bold">{{ truck.permit_expiry|date:"d-m-Y"|default:"Not Set" }}</p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Status History -->
+    {% if truck.status_history %}
+    <div class="bg-white p-8 rounded-2xl shadow-lg">
+        <h2 class="text-xl font-bold text-slate-900 mb-4">Status History</h2>
+        <div class="space-y-3">
+            {% for event in truck.status_history %}
+            <div class="flex items-start space-x-3 p-3 bg-gray-50 rounded-xl">
+                <div class="bg-slate-900 text-white px-3 py-1 rounded-full text-sm font-bold">
+                    {{ event.status }}
+                </div>
+                <div>
+                    <p class="font-semibold">{{ event.remarks|default:"No remarks" }}</p>
+                    <p class="text-sm text-gray-500">{{ event.date|date:"d-m-Y H:i" }}</p>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
