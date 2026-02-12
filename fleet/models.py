@@ -210,3 +210,17 @@ class DailyOdoRegistry(models.Model):
 
     def __str__(self):
         return f"{self.truck} - {self.date}"
+
+
+class DieselPrice(models.Model):
+    """Diesel price tracking by date"""
+    date = models.DateField(unique=True)
+    price = models.DecimalField(max_digits=6, decimal_places=2)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-date']
+
+    def __str__(self):
+        return f"₹{self.price}/L on {self.date}"

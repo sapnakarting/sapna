@@ -9,10 +9,11 @@ from django.utils import timezone
 from django.views import View
 from django.views.generic import ListView, CreateView, UpdateView, DeleteView, DetailView
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.http import JsonResponse
 
-from .forms import LoginForm, UserCreationForm, TruckForm, TruckSearchForm, DriverForm
-from .models import UserProfile, Truck, Driver, FuelLog, TireInventory
-from .utils.permissions import is_admin_required
+from .forms import LoginForm, UserCreationForm, TruckForm, TruckSearchForm, DriverForm, FuelLogForm, DieselPriceForm
+from .models import UserProfile, Truck, Driver, FuelLog, TireInventory, DieselPrice
+from .utils.permissions import is_admin_required, is_fuel_agent_required
 
 
 class LoginView(View):
@@ -348,4 +349,161 @@ class DriverDeleteView(LoginRequiredMixin, DeleteView):
         name = driver.name
         messages.success(self.request, f'Driver {name} deleted successfully!')
         return super().delete(request, *args, **kwargs)
+
+
+# Fuel Log Views
+
+class FuelLogListView(LoginRequiredMixin, ListView):
+    model = FuelLog
+    template_name = 'fleet/fuel_log_list.html'
+    context_object_name = 'fuel_logs'
+    paginate_by = 20
+    
+    def get_queryset(self):
+        queryset = FuelLog.objects.all().select_related('truck', 'driver').order_by('-created_at')
+        # Apply filters
+        date_from = self.request.GET.get('date_from')
+        date_to = self.request.GET.get('date_to')
+        if date_from:
+            queryset = queryset.filter(date__gte=date_from)
+        if date_to:
+            queryset = queryset.filter(date__lte=date_to)
+        truck_id = self.request.GET.get('truck')
+        if truck_id:
+            queryset = queryset.filter(truck_id=truck_id)
+        entry_type = self.request.GET.get('entry_type')
+        if entry_type:
+            queryset = queryset.filter(entry_type=entry_type)
+        return queryset
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['date_from'] = self.request.GET.get('date_from')
+        context['date_to'] = self.request.GET.get('date_to')
+        context['truck_filter'] = self.request.GET.get('truck')
+        context['entry_type_filter'] = self.request.GET.get('entry_type')
+        context['pending_sync_count'] = FuelLog.objects.filter(synced=False).count()
+        return context
+
+
+class FuelLogCreateView(LoginRequiredMixin, CreateView):
+    model = FuelLog
+    form_class = FuelLogForm
+    template_name = 'fleet/fuel_log_form.html'
+    success_url = reverse_lazy('fuel-log-list')
+    
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        truck_id = self.request.GET.get('truck')
+        if truck_id:
+            truck = Truck.objects.get(pk=truck_id)
+            kwargs['initial'] = {
+                'previous_odometer': truck.current_odometer,
+                'truck': truck,
+            }
+        return kwargs
+    
+    def form_valid(self, form):
+        fuel_log = form.save()
+        messages.success(self.request, f'Fuel log entry created for {fuel_log.truck.plate_number}!')
+        return super().form_valid(form)
+
+
+class FuelLogDetailView(LoginRequiredMixin, DetailView):
+    model = FuelLog
+    template_name = 'fleet/fuel_log_detail.html'
+    context_object_name = 'fuel_log'
+    pk_url_kwarg = 'pk'
+
+
+class FuelLogUpdateView(LoginRequiredMixin, UpdateView):
+    model = FuelLog
+    form_class = FuelLogForm
+    template_name = 'fleet/fuel_log_form.html'
+    success_url = reverse_lazy('fuel-log-list')
+    
+    def form_valid(self, form):
+        fuel_log = form.save()
+        messages.success(self.request, f'Fuel log updated for {fuel_log.truck.plate_number}!')
+        return super().form_valid(form)
+
+
+class FuelLogDeleteView(LoginRequiredMixin, DeleteView):
+    model = FuelLog
+    template_name = 'fleet/fuel_log_delete.html'
+    success_url = reverse_lazy('fuel-log-list')
+    
+    def delete(self, request, *args, **kwargs):
+        fuel_log = self.get_object()
+        messages.success(self.request, f'Fuel log deleted for {fuel_log.truck.plate_number}!')
+        return super().delete(request, *args, **kwargs)
+
+
+@is_fuel_agent_required
+def sync_now(request):
+    """Sync all pending fuel entries now"""
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'message': 'Method not allowed'}, status=405)
+    
+    pending_logs = FuelLog.objects.filter(synced=False)
+    count = pending_logs.count()
+    
+    if count == 0:
+        return JsonResponse({'success': True, 'count': 0, 'message': 'No pending entries to sync'})
+    
+    # Sync all pending logs
+    for log in pending_logs:
+        log.synced = True
+        log.synced_at = timezone.now()
+        log.save()
+    
+    messages.success(request, f'{count} fuel entries synced successfully!')
+    
+    return JsonResponse({
+        'success': True,
+        'count': count,
+        'pending_count': FuelLog.objects.filter(synced=False).count()
+    })
+
+
+@is_admin_required
+def update_diesel_price(request):
+    """Update diesel price for a date"""
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'message': 'Method not allowed'}, status=405)
+    
+    form = DieselPriceForm(request.POST)
+    if not form.is_valid():
+        return JsonResponse({'success': False, 'errors': form.errors}, status=400)
+    
+    price = form.cleaned_data['price']
+    date = form.cleaned_data['date']
+    
+    # Update or create diesel price
+    diesel_price, created = DieselPrice.objects.update_or_create(
+        date=date,
+        defaults={'price': price}
+    )
+    
+    # If updating today's price, delete old prices
+    if not created and timezone.now().date() != date:
+        DieselPrice.objects.filter(date__gt=date).delete()
+    
+    return JsonResponse({
+        'success': True,
+        'price': float(price),
+        'message': f'Diesel price for {date} updated to ₹{price}'
+    })
+
+
+@is_fuel_agent_required
+def get_today_diesel_price(request):
+    """Get today's diesel price for form autocomplete"""
+    today = timezone.now().date()
+    today_price = DieselPrice.objects.filter(date=today).first()
+    
+    if today_price:
+        return JsonResponse({'price': float(today_price.price)})
+    else:
+        return JsonResponse({'price': 0.0})
 
