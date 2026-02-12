@@ -40,4 +40,14 @@ urlpatterns = [
     path('fuel-logs/sync/', views.sync_now, name='fuel-sync-now'),
     path('fuel-logs/diesel-price/', views.get_today_diesel_price, name='fuel-diesel-price'),
     path('fuel-logs/update-diesel-price/', views.update_diesel_price, name='fuel-update-diesel-price'),
+
+    # Tire Inventory Management
+    path('tires/', views.TireInventoryListView.as_view(), name='tire-list'),
+    path('tires/<int:pk>/', views.TireInventoryDetailView.as_view(), name='tire-detail'),
+    path('tires/create/', views.TireInventoryCreateView.as_view(), name='tire-create'),
+    path('tires/<int:pk>/edit/', views.TireInventoryUpdateView.as_view(), name='tire-update'),
+    path('tires/<int:pk>/delete/', views.TireInventoryDeleteView.as_view(), name='tire-delete'),
+    path('tires/truck/<int:pk>/', views.TireTruckView.as_view(), name='tire-truck'),
+    path('tires/search/', views.TireSearchView.as_view(), name='tire-search'),
+    path('tires/<int:pk>/action/', views.TireActionView.as_view(), name='tire-action'),
 ]

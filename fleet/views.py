@@ -11,7 +11,14 @@ from django.views.generic import ListView, CreateView, UpdateView, DeleteView, D
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.http import JsonResponse
 
-from .forms import LoginForm, UserCreationForm, TruckForm, TruckSearchForm, DriverForm, FuelLogForm, DieselPriceForm
+from django.db.models import Sum, Count
+from django.http import JsonResponse
+from django.template.loader import render_to_string
+from django.urls import reverse
+from django.utils.decorators import method_decorator
+from django.views.decorators.http import require_http_methods
+
+from .forms import LoginForm, UserCreationForm, TruckForm, TruckSearchForm, DriverForm, FuelLogForm, DieselPriceForm, TireInventoryForm, TireActionForm, TireSearchForm
 from .models import UserProfile, Truck, Driver, FuelLog, TireInventory, DieselPrice
 from .utils.permissions import is_admin_required, is_fuel_agent_required
 
@@ -494,6 +501,383 @@ def update_diesel_price(request):
         'price': float(price),
         'message': f'Diesel price for {date} updated to ₹{price}'
     })
+
+
+# Tire Inventory Views
+
+class TireInventoryListView(LoginRequiredMixin, ListView):
+    model = TireInventory
+    template_name = 'fleet/tire_list.html'
+    context_object_name = 'tires'
+    paginate_by = 20
+    
+    def get_queryset(self):
+        queryset = TireInventory.objects.all().select_related('truck').order_by('-created_at')
+        
+        # Apply search filter
+        search = self.request.GET.get('search', '')
+        if search:
+            queryset = queryset.filter(
+                serial_number__icontains=search
+            ) | queryset.filter(
+                brand__icontains=search
+            ) | queryset.filter(
+                truck__plate_number__icontains=search
+            )
+        
+        # Apply status filter
+        status_filter = self.request.GET.get('status', '')
+        if status_filter:
+            queryset = queryset.filter(status=status_filter)
+        
+        # Apply truck filter
+        truck_filter = self.request.GET.get('truck', '')
+        if truck_filter:
+            queryset = queryset.filter(truck_id=truck_filter)
+        
+        return queryset
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        
+        # Calculate quick stats
+        context['total_tires'] = TireInventory.objects.count()
+        context['mounted_count'] = TireInventory.objects.filter(status='MOUNTED').count()
+        context['spare_count'] = TireInventory.objects.filter(status='SPARE').count()
+        context['repair_count'] = TireInventory.objects.filter(status='REPAIR').count()
+        context['scrapped_count'] = TireInventory.objects.filter(status='SCRAPPED').count()
+        
+        # Calculate average cost per km
+        total_cost = TireInventory.objects.aggregate(
+            total=Sum('purchase_cost') + Sum('mounting_cost') + Sum('repair_costs')
+        )['total'] or 0
+        
+        total_mileage = 0
+        for tire in TireInventory.objects.all():
+            total_mileage += tire.calculate_current_mileage()
+        
+        if total_mileage > 0:
+            context['avg_cost_per_km'] = total_cost / total_mileage
+        else:
+            context['avg_cost_per_km'] = 0
+        
+        context['search_form'] = TireSearchForm(self.request.GET)
+        
+        return context
+
+
+class TireInventoryDetailView(LoginRequiredMixin, DetailView):
+    model = TireInventory
+    template_name = 'fleet/tire_detail.html'
+    context_object_name = 'tire'
+    pk_url_kwarg = 'pk'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        tire = self.object
+        
+        # Calculate metrics
+        context['total_cost'] = tire.calculate_total_cost()
+        context['cost_per_km'] = tire.calculate_cost_per_km()
+        context['current_mileage'] = tire.calculate_current_mileage()
+        
+        # Get truck information if mounted
+        if tire.truck:
+            context['truck_info'] = {
+                'plate_number': tire.truck.plate_number,
+                'transporter': tire.truck.transporter_name,
+                'wheel_config': tire.truck.wheel_config,
+                'current_odometer': tire.truck.current_odometer
+            }
+        
+        # Sort history chronologically
+        context['history'] = sorted(tire.history, key=lambda x: x.get('date', ''))
+        
+        return context
+
+
+class TireInventoryCreateView(LoginRequiredMixin, CreateView):
+    model = TireInventory
+    form_class = TireInventoryForm
+    template_name = 'fleet/tire_form.html'
+    success_url = reverse_lazy('tire-list')
+    
+    def get_initial(self):
+        initial = super().get_initial()
+        initial['status'] = 'NEW'
+        return initial
+    
+    def form_valid(self, form):
+        tire = form.save(commit=False)
+        tire.status = 'NEW'
+        
+        # Add initial history entry
+        tire.history = [{
+            'status': 'NEW',
+            'date': timezone.now().isoformat(),
+            'reason': 'Tire created'
+        }]
+        
+        tire.save()
+        messages.success(self.request, f'Tire {tire.serial_number} created successfully!')
+        return super().form_valid(form)
+
+
+class TireInventoryUpdateView(LoginRequiredMixin, UpdateView):
+    model = TireInventory
+    form_class = TireInventoryForm
+    template_name = 'fleet/tire_form.html'
+    success_url = reverse_lazy('tire-list')
+    
+    def form_valid(self, form):
+        tire = form.save(commit=False)
+        old_status = TireInventory.objects.get(pk=self.object.pk).status
+        
+        # Track status changes in history
+        if old_status != tire.status:
+            event = {
+                'status': tire.status,
+                'date': timezone.now().isoformat(),
+                'reason': f'Status changed from {old_status} to {tire.status}'
+            }
+            
+            if tire.status == 'MOUNTED':
+                event['odometer'] = tire.mounted_at_odometer
+                event['reason'] = f'Mounted at position {tire.position} on {tire.truck.plate_number}'
+            elif tire.status == 'REPAIR':
+                event['reason'] = f'Repair done. Cost: ₹{tire.repair_costs}'
+            elif tire.status == 'SCRAPPED':
+                event['reason'] = f'Scrapped. Reason: {tire.scrap_reason}'
+            
+            tire.history.append(event)
+        
+        tire.save()
+        messages.success(self.request, f'Tire {tire.serial_number} updated successfully!')
+        return super().form_valid(form)
+
+
+class TireInventoryDeleteView(LoginRequiredMixin, DeleteView):
+    model = TireInventory
+    template_name = 'fleet/tire_delete.html'
+    success_url = reverse_lazy('tire-list')
+    context_object_name = 'tire'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        tire = self.object
+        
+        # Calculate metrics for deletion confirmation
+        context['total_cost'] = tire.calculate_total_cost()
+        context['cost_per_km'] = tire.calculate_cost_per_km()
+        context['current_mileage'] = tire.calculate_current_mileage()
+        context['history_count'] = len(tire.history)
+        
+        return context
+    
+    def delete(self, request, *args, **kwargs):
+        tire = self.get_object()
+        serial_number = tire.serial_number
+        messages.success(self.request, f'Tire {serial_number} deleted successfully!')
+        return super().delete(request, *args, **kwargs)
+
+
+class TireTruckView(LoginRequiredMixin, DetailView):
+    model = Truck
+    template_name = 'fleet/tire_truck_visual.html'
+    context_object_name = 'truck'
+    pk_url_kwarg = 'pk'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        truck = self.object
+        
+        # Get all tires for this truck
+        context['tires'] = TireInventory.objects.filter(truck=truck)
+        
+        # Define wheel positions based on configuration
+        wheel_positions = []
+        if truck.wheel_config == '10_WHEEL':
+            wheel_positions = [
+                'FL', 'FR',
+                'R1 Left Outside', 'R1 Left Inside', 'R1 Right Inside', 'R1 Right Outside',
+                'R2 Left Outside', 'R2 Left Inside', 'R2 Right Inside', 'R2 Right Outside'
+            ]
+        elif truck.wheel_config == '14_WHEEL':
+            wheel_positions = [
+                'FL', 'FR',
+                'R1 Left Outside', 'R1 Left Inside', 'R1 Right Inside', 'R1 Right Outside',
+                'R2 Left Outside', 'R2 Left Inside', 'R2 Right Inside', 'R2 Right Outside',
+                'R3 Left Outside', 'R3 Left Inside', 'R3 Right Inside', 'R3 Right Outside'
+            ]
+        elif truck.wheel_config == '16_WHEEL':
+            wheel_positions = [
+                'FL', 'FR',
+                'R1 Left Outside', 'R1 Left Inside', 'R1 Right Inside', 'R1 Right Outside',
+                'R2 Left Outside', 'R2 Left Inside', 'R2 Right Inside', 'R2 Right Outside',
+                'R3 Left Outside', 'R3 Left Inside', 'R3 Right Inside', 'R3 Right Outside',
+                'R4 Left Outside', 'R4 Left Inside', 'R4 Right Inside', 'R4 Right Outside'
+            ]
+        
+        context['wheel_positions'] = wheel_positions
+        
+        # Create position map for easy lookup
+        position_map = {}
+        for tire in context['tires']:
+            position_map[tire.position] = {
+                'tire': tire,
+                'status': tire.status,
+                'serial': tire.serial_number
+            }
+        
+        context['position_map'] = position_map
+        
+        # Status color legend
+        context['status_colors'] = {
+            'MOUNTED': 'bg-green-500',
+            'SPARE': 'bg-amber-500',
+            'REPAIR': 'bg-red-500',
+            'SCRAPPED': 'bg-gray-500',
+            'NEW': 'bg-blue-500'
+        }
+        
+        return context
+
+
+class TireSearchView(LoginRequiredMixin, ListView):
+    model = TireInventory
+    template_name = 'fleet/tire_list_partial.html'
+    context_object_name = 'tires'
+    
+    def get_queryset(self):
+        queryset = TireInventory.objects.all().select_related('truck').order_by('-created_at')
+        
+        # Apply search filter
+        search = self.request.GET.get('search', '')
+        if search:
+            queryset = queryset.filter(
+                serial_number__icontains=search
+            ) | queryset.filter(
+                brand__icontains=search
+            ) | queryset.filter(
+                truck__plate_number__icontains=search
+            )
+        
+        # Apply status filter
+        status_filter = self.request.GET.get('status', '')
+        if status_filter:
+            queryset = queryset.filter(status=status_filter)
+        
+        # Apply truck filter
+        truck_filter = self.request.GET.get('truck', '')
+        if truck_filter:
+            queryset = queryset.filter(truck_id=truck_filter)
+        
+        return queryset
+
+
+class TireActionView(LoginRequiredMixin, View):
+    def get(self, request, pk):
+        tire = get_object_or_404(TireInventory, pk=pk)
+        action = request.GET.get('action', '')
+        trucks = Truck.objects.all()
+        
+        context = {
+            'tire': tire,
+            'action': action,
+            'trucks': trucks
+        }
+        
+        return render(request, 'fleet/tire_action_modal.html', context)
+    
+    def post(self, request, pk):
+        tire = get_object_or_404(TireInventory, pk=pk)
+        form = TireActionForm(request.POST)
+        
+        if not form.is_valid():
+            return JsonResponse({
+                'success': False,
+                'errors': form.errors
+            }, status=400)
+        
+        action = form.cleaned_data['action']
+        old_status = tire.status
+        
+        # Process different actions
+        if action == 'MOUNT':
+            tire.status = 'MOUNTED'
+            tire.truck = form.cleaned_data['truck']
+            tire.position = form.cleaned_data['position']
+            tire.mounted_at_odometer = form.cleaned_data['truck_odometer']
+            
+            # Update truck odometer
+            if tire.truck:
+                tire.truck.current_odometer = form.cleaned_data['truck_odometer']
+                tire.truck.save()
+            
+            # Add history entry
+            tire.history.append({
+                'status': 'MOUNTED',
+                'date': timezone.now().isoformat(),
+                'odometer': form.cleaned_data['truck_odometer'],
+                'reason': f'Mounted at position {form.cleaned_data["position"]} on {tire.truck.plate_number}'
+            })
+            
+        elif action == 'UNMOUNT':
+            tire.status = 'SPARE'
+            old_truck = tire.truck
+            old_position = tire.position
+            tire.truck = None
+            tire.position = ''
+            tire.mounted_at_odometer = None
+            
+            # Add history entry
+            tire.history.append({
+                'status': 'SPARE',
+                'date': timezone.now().isoformat(),
+                'reason': f'Unmounted from position {old_position} on {old_truck.plate_number}'
+            })
+            
+        elif action == 'REPAIR':
+            tire.status = 'REPAIR'
+            repair_cost = form.cleaned_data.get('repair_cost', 0)
+            tire.repair_costs = (tire.repair_costs or 0) + repair_cost
+            
+            # Add history entry
+            tire.history.append({
+                'status': 'REPAIR',
+                'date': timezone.now().isoformat(),
+                'reason': f'Repair done. Cost: ₹{repair_cost}',
+                'cost': repair_cost
+            })
+            
+        elif action == 'SCRAP':
+            tire.status = 'SCRAPPED'
+            tire.scrap_reason = form.cleaned_data['scrap_reason']
+            
+            # Add history entry
+            tire.history.append({
+                'status': 'SCRAPPED',
+                'date': timezone.now().isoformat(),
+                'reason': f'Scrapped. Reason: {form.cleaned_data["scrap_reason"]}'
+            })
+        
+        tire.save()
+        
+        # Calculate updated metrics
+        total_cost = tire.calculate_total_cost()
+        cost_per_km = tire.calculate_cost_per_km()
+        current_mileage = tire.calculate_current_mileage()
+        
+        return JsonResponse({
+            'success': True,
+            'tire_id': tire.pk,
+            'serial_number': tire.serial_number,
+            'status': tire.status,
+            'total_cost': float(total_cost),
+            'cost_per_km': float(cost_per_km),
+            'current_mileage': current_mileage,
+            'message': f'Tire {action.lower()}ed successfully'
+        })
 
 
 @is_fuel_agent_required

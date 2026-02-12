@@ -1,0 +1,251 @@
+{% extends 'base.html' %}
+
+{% block title %}Truck {{ truck.plate_number }} - Tire Visualization - SAPNA CARTING{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-3xl font-bold text-gray-800">Truck {{ truck.plate_number }} - Tire Visualization</h1>
+        <a href="{% url 'truck-detail' truck.pk %}" class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-xl transition-colors">
+            Back to Truck
+        </a>
+    </div>
+
+    <!-- Truck Information -->
+    <div class="bg-white p-6 rounded-xl shadow border mb-6">
+        <h3 class="text-lg font-semibold text-gray-800 mb-4">Truck Information</h3>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+                <div class="text-gray-500 text-sm">Plate Number</div>
+                <div class="font-medium text-gray-800">{{ truck.plate_number }}</div>
+            </div>
+            <div>
+                <div class="text-gray-500 text-sm">Transporter</div>
+                <div class="font-medium text-gray-800">{{ truck.transporter_name }}</div>
+            </div>
+            <div>
+                <div class="text-gray-500 text-sm">Wheel Configuration</div>
+                <div class="font-medium text-gray-800">{{ truck.get_wheel_config_display }}</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Status Legend -->
+    <div class="bg-white p-4 rounded-xl shadow border mb-6">
+        <h3 class="text-lg font-semibold text-gray-800 mb-3">Status Legend</h3>
+        <div class="flex flex-wrap gap-4">
+            <div class="flex items-center gap-2">
+                <div class="w-4 h-4 rounded-full bg-green-500"></div>
+                <span class="text-sm text-gray-600">MOUNTED</span>
+            </div>
+            <div class="flex items-center gap-2">
+                <div class="w-4 h-4 rounded-full bg-amber-500"></div>
+                <span class="text-sm text-gray-600">SPARE</span>
+            </div>
+            <div class="flex items-center gap-2">
+                <div class="w-4 h-4 rounded-full bg-red-500"></div>
+                <span class="text-sm text-gray-600">REPAIR</span>
+            </div>
+            <div class="flex items-center gap-2">
+                <div class="w-4 h-4 rounded-full bg-gray-500"></div>
+                <span class="text-sm text-gray-600">SCRAPPED</span>
+            </div>
+            <div class="flex items-center gap-2">
+                <div class="w-4 h-4 rounded-full bg-gray-300"></div>
+                <span class="text-sm text-gray-600">Empty</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Truck Visualization -->
+    <div class="bg-white p-6 rounded-xl shadow border">
+        <h3 class="text-lg font-semibold text-gray-800 mb-4">Tire Positions</h3>
+        
+        <!-- Front Axle -->
+        <div class="mb-8">
+            <h4 class="text-md font-medium text-gray-700 mb-4">Front Axle</h4>
+            <div class="grid grid-cols-2 gap-8 max-w-2xl">
+                <div class="text-center">
+                    <div class="w-24 h-24 mx-auto mb-2 border-2 border-gray-300 rounded-full flex items-center justify-center 
+                        {% if position_map.FL %}{{ status_colors[position_map.FL.status] }}{% else %}bg-gray-200{% endif %}
+                        cursor-pointer hover:opacity-80 transition-opacity" 
+                        onclick="showTireInfo('FL')">
+                        {% if position_map.FL %}
+                        <div class="text-white font-bold text-sm">{{ position_map.FL.serial }}</div>
+                        {% else %}
+                        <div class="text-gray-500 text-sm">FL</div>
+                        {% endif %}
+                    </div>
+                    <div class="text-sm text-gray-600">Front Left (FL)</div>
+                </div>
+                <div class="text-center">
+                    <div class="w-24 h-24 mx-auto mb-2 border-2 border-gray-300 rounded-full flex items-center justify-center 
+                        {% if position_map.FR %}{{ status_colors[position_map.FR.status] }}{% else %}bg-gray-200{% endif %}
+                        cursor-pointer hover:opacity-80 transition-opacity" 
+                        onclick="showTireInfo('FR')">
+                        {% if position_map.FR %}
+                        <div class="text-white font-bold text-sm">{{ position_map.FR.serial }}</div>
+                        {% else %}
+                        <div class="text-gray-500 text-sm">FR</div>
+                        {% endif %}
+                    </div>
+                    <div class="text-sm text-gray-600">Front Right (FR)</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Rear Axles -->
+        <div class="space-y-8">
+            {% for i in "1234" %}
+            {% if "R" + i + " Left Outside" in wheel_positions %}
+            <div>
+                <h4 class="text-md font-medium text-gray-700 mb-4">Rear Axle {{ i }}</h4>
+                <div class="grid grid-cols-4 gap-4 max-w-4xl">
+                    <div class="text-center">
+                        <div class="w-20 h-20 mx-auto mb-2 border-2 border-gray-300 rounded-full flex items-center justify-center 
+                            {% if position_map.["R" + i + " Left Outside"] %}{{ status_colors[position_map.["R" + i + " Left Outside"].status] }}{% else %}bg-gray-200{% endif %}
+                            cursor-pointer hover:opacity-80 transition-opacity" 
+                            onclick="showTireInfo('R{{ i }} Left Outside')">
+                            {% if position_map.["R" + i + " Left Outside"] %}
+                            <div class="text-white font-bold text-xs">{{ position_map.["R" + i + " Left Outside"].serial }}</div>
+                            {% else %}
+                            <div class="text-gray-500 text-xs">LO</div>
+                            {% endif %}
+                        </div>
+                        <div class="text-sm text-gray-600">Left Outside</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="w-20 h-20 mx-auto mb-2 border-2 border-gray-300 rounded-full flex items-center justify-center 
+                            {% if position_map.["R" + i + " Left Inside"] %}{{ status_colors[position_map.["R" + i + " Left Inside"].status] }}{% else %}bg-gray-200{% endif %}
+                            cursor-pointer hover:opacity-80 transition-opacity" 
+                            onclick="showTireInfo('R{{ i }} Left Inside')">
+                            {% if position_map.["R" + i + " Left Inside"] %}
+                            <div class="text-white font-bold text-xs">{{ position_map.["R" + i + " Left Inside"].serial }}</div>
+                            {% else %}
+                            <div class="text-gray-500 text-xs">LI</div>
+                            {% endif %}
+                        </div>
+                        <div class="text-sm text-gray-600">Left Inside</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="w-20 h-20 mx-auto mb-2 border-2 border-gray-300 rounded-full flex items-center justify-center 
+                            {% if position_map.["R" + i + " Right Inside"] %}{{ status_colors[position_map.["R" + i + " Right Inside"].status] }}{% else %}bg-gray-200{% endif %}
+                            cursor-pointer hover:opacity-80 transition-opacity" 
+                            onclick="showTireInfo('R{{ i }} Right Inside')">
+                            {% if position_map.["R" + i + " Right Inside"] %}
+                            <div class="text-white font-bold text-xs">{{ position_map.["R" + i + " Right Inside"].serial }}</div>
+                            {% else %}
+                            <div class="text-gray-500 text-xs">RI</div>
+                            {% endif %}
+                        </div>
+                        <div class="text-sm text-gray-600">Right Inside</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="w-20 h-20 mx-auto mb-2 border-2 border-gray-300 rounded-full flex items-center justify-center 
+                            {% if position_map.["R" + i + " Right Outside"] %}{{ status_colors[position_map.["R" + i + " Right Outside"].status] }}{% else %}bg-gray-200{% endif %}
+                            cursor-pointer hover:opacity-80 transition-opacity" 
+                            onclick="showTireInfo('R{{ i }} Right Outside')">
+                            {% if position_map.["R" + i + " Right Outside"] %}
+                            <div class="text-white font-bold text-xs">{{ position_map.["R" + i + " Right Outside"].serial }}</div>
+                            {% else %}
+                            <div class="text-gray-500 text-xs">RO</div>
+                            {% endif %}
+                        </div>
+                        <div class="text-sm text-gray-600">Right Outside</div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<!-- Tire Info Modal -->
+<div id="tire-info-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden justify-center items-center z-50">
+    <div class="bg-white rounded-xl p-6 max-w-md w-full mx-4">
+        <div class="flex justify-between items-center mb-4">
+            <h3 id="modal-title" class="text-lg font-semibold text-gray-800">Tire Information</h3>
+            <button onclick="closeTireInfoModal()" class="text-gray-400 hover:text-gray-600">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+        </div>
+        <div id="modal-content" class="space-y-3">
+            <!-- Content will be populated by JavaScript -->
+        </div>
+        <div class="mt-6 flex justify-end gap-3">
+            <button onclick="closeTireInfoModal()" class="bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2 rounded-xl transition-colors">
+                Close
+            </button>
+            <a id="view-tire-btn" href="#" class="bg-slate-600 hover:bg-slate-700 text-white px-4 py-2 rounded-xl transition-colors">
+                View Details
+            </a>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function showTireInfo(position) {
+        const modal = document.getElementById('tire-info-modal');
+        const title = document.getElementById('modal-title');
+        const content = document.getElementById('modal-content');
+        const viewBtn = document.getElementById('view-tire-btn');
+        
+        const tireInfo = {{ position_map|safe }};
+        const tire = tireInfo[position];
+        
+        if (tire) {
+            title.textContent = `Tire ${tire.serial} - ${position}`;
+            content.innerHTML = `
+                <div class="flex justify-between">
+                    <div class="text-gray-500">Serial Number:</div>
+                    <div class="font-medium text-gray-800">${tire.serial}</div>
+                </div>
+                <div class="flex justify-between">
+                    <div class="text-gray-500">Brand:</div>
+                    <div class="font-medium text-gray-800">${tire.tire.brand}</div>
+                </div>
+                <div class="flex justify-between">
+                    <div class="text-gray-500">Status:</div>
+                    <div class="font-medium text-gray-800">${tire.status}</div>
+                </div>
+                <div class="flex justify-between">
+                    <div class="text-gray-500">Current Mileage:</div>
+                    <div class="font-medium text-gray-800">${tire.tire.calculate_current_mileage()} km</div>
+                </div>
+            `;
+            viewBtn.href = `/tires/${tire.tire.pk}/`;
+        } else {
+            title.textContent = `Position ${position} - Empty`;
+            content.innerHTML = `
+                <div class="text-center text-gray-500 py-4">
+                    No tire mounted at this position.
+                </div>
+            `;
+            viewBtn.style.display = 'none';
+        }
+        
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+    }
+    
+    function closeTireInfoModal() {
+        const modal = document.getElementById('tire-info-modal');
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+        document.getElementById('view-tire-btn').style.display = 'inline-block';
+    }
+    
+    // Close modal when clicking outside
+    document.getElementById('tire-info-modal').addEventListener('click', function(e) {
+        if (e.target === this) {
+            closeTireInfoModal();
+        }
+    });
+</script>
+{% endblock %}

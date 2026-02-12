@@ -1,0 +1,143 @@
+{% load static %}
+
+{% if action == 'MOUNT' %}
+<form hx-post="{% url 'tire-action' tire.pk %}" hx-target="#action-modal" hx-swap="outerHTML">
+    <input type="hidden" name="action" value="MOUNT">
+    
+    <div class="space-y-4">
+        <div>
+            <label for="truck" class="block text-sm font-medium text-gray-700 mb-1">Truck</label>
+            <select name="truck" id="truck" class="w-full px-4 py-2 border border-gray-300 rounded-xl" required>
+                <option value="">Select Truck</option>
+                {% for truck in trucks %}
+                <option value="{{ truck.pk }}" {% if truck.pk == tire.truck.pk %}selected{% endif %}>{{ truck.plate_number }} - {{ truck.transporter_name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        
+        <div>
+            <label for="truck_odometer" class="block text-sm font-medium text-gray-700 mb-1">Current Odometer (km)</label>
+            <input type="number" name="truck_odometer" id="truck_odometer" 
+                   class="w-full px-4 py-2 border border-gray-300 rounded-xl" 
+                   value="{% if tire.truck %}{{ tire.truck.current_odometer }}{% endif %}" required>
+        </div>
+        
+        <div>
+            <label for="position" class="block text-sm font-medium text-gray-700 mb-1">Position</label>
+            <select name="position" id="position" class="w-full px-4 py-2 border border-gray-300 rounded-xl" required>
+                <option value="">Select Position</option>
+                <option value="FL" {% if tire.position == 'FL' %}selected{% endif %}>Front Left (FL)</option>
+                <option value="FR" {% if tire.position == 'FR' %}selected{% endif %}>Front Right (FR)</option>
+                <option value="R1 Left Outside" {% if tire.position == 'R1 Left Outside' %}selected{% endif %}>R1 Left Outside</option>
+                <option value="R1 Left Inside" {% if tire.position == 'R1 Left Inside' %}selected{% endif %}>R1 Left Inside</option>
+                <option value="R1 Right Inside" {% if tire.position == 'R1 Right Inside' %}selected{% endif %}>R1 Right Inside</option>
+                <option value="R1 Right Outside" {% if tire.position == 'R1 Right Outside' %}selected{% endif %}>R1 Right Outside</option>
+                <option value="R2 Left Outside" {% if tire.position == 'R2 Left Outside' %}selected{% endif %}>R2 Left Outside</option>
+                <option value="R2 Left Inside" {% if tire.position == 'R2 Left Inside' %}selected{% endif %}>R2 Left Inside</option>
+                <option value="R2 Right Inside" {% if tire.position == 'R2 Right Inside' %}selected{% endif %}>R2 Right Inside</option>
+                <option value="R2 Right Outside" {% if tire.position == 'R2 Right Outside' %}selected{% endif %}>R2 Right Outside</option>
+            </select>
+        </div>
+        
+        <div>
+            <label for="remarks" class="block text-sm font-medium text-gray-700 mb-1">Remarks</label>
+            <textarea name="remarks" id="remarks" rows="3" 
+                      class="w-full px-4 py-2 border border-gray-300 rounded-xl"></textarea>
+        </div>
+        
+        <div class="flex justify-end gap-3 pt-4 border-t border-gray-200">
+            <button type="button" onclick="closeActionModal()" class="bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2 rounded-xl transition-colors">
+                Cancel
+            </button>
+            <button type="submit" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-xl transition-colors">
+                Mount Tire
+            </button>
+        </div>
+    </div>
+</form>
+
+{% elif action == 'UNMOUNT' %}
+<form hx-post="{% url 'tire-action' tire.pk %}" hx-target="#action-modal" hx-swap="outerHTML">
+    <input type="hidden" name="action" value="UNMOUNT">
+    
+    <div class="space-y-4">
+        <p class="text-gray-600">Are you sure you want to unmount this tire from {{ tire.truck.plate_number }} (Position: {{ tire.position }})?</p>
+        
+        <div>
+            <label for="remarks" class="block text-sm font-medium text-gray-700 mb-1">Remarks</label>
+            <textarea name="remarks" id="remarks" rows="3" 
+                      class="w-full px-4 py-2 border border-gray-300 rounded-xl"></textarea>
+        </div>
+        
+        <div class="flex justify-end gap-3 pt-4 border-t border-gray-200">
+            <button type="button" onclick="closeActionModal()" class="bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2 rounded-xl transition-colors">
+                Cancel
+            </button>
+            <button type="submit" class="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-xl transition-colors">
+                Unmount Tire
+            </button>
+        </div>
+    </div>
+</form>
+
+{% elif action == 'REPAIR' %}
+<form hx-post="{% url 'tire-action' tire.pk %}" hx-target="#action-modal" hx-swap="outerHTML">
+    <input type="hidden" name="action" value="REPAIR">
+    
+    <div class="space-y-4">
+        <div>
+            <label for="repair_cost" class="block text-sm font-medium text-gray-700 mb-1">Repair Cost (₹)</label>
+            <input type="number" name="repair_cost" id="repair_cost" step="0.01" 
+                   class="w-full px-4 py-2 border border-gray-300 rounded-xl" value="0.00" required>
+        </div>
+        
+        <div>
+            <label for="remarks" class="block text-sm font-medium text-gray-700 mb-1">Remarks</label>
+            <textarea name="remarks" id="remarks" rows="3" 
+                      class="w-full px-4 py-2 border border-gray-300 rounded-xl"></textarea>
+        </div>
+        
+        <div class="flex justify-end gap-3 pt-4 border-t border-gray-200">
+            <button type="button" onclick="closeActionModal()" class="bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2 rounded-xl transition-colors">
+                Cancel
+            </button>
+            <button type="submit" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-xl transition-colors">
+                Mark as Repair
+            </button>
+        </div>
+    </div>
+</form>
+
+{% elif action == 'SCRAP' %}
+<form hx-post="{% url 'tire-action' tire.pk %}" hx-target="#action-modal" hx-swap="outerHTML">
+    <input type="hidden" name="action" value="SCRAP">
+    
+    <div class="space-y-4">
+        <div>
+            <label for="scrap_reason" class="block text-sm font-medium text-gray-700 mb-1">Scrap Reason</label>
+            <textarea name="scrap_reason" id="scrap_reason" rows="3" 
+                      class="w-full px-4 py-2 border border-gray-300 rounded-xl" required></textarea>
+        </div>
+        
+        <div>
+            <label for="remarks" class="block text-sm font-medium text-gray-700 mb-1">Remarks</label>
+            <textarea name="remarks" id="remarks" rows="3" 
+                      class="w-full px-4 py-2 border border-gray-300 rounded-xl"></textarea>
+        </div>
+        
+        <div class="flex justify-end gap-3 pt-4 border-t border-gray-200">
+            <button type="button" onclick="closeActionModal()" class="bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2 rounded-xl transition-colors">
+                Cancel
+            </button>
+            <button type="submit" class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-xl transition-colors">
+                Scrap Tire
+            </button>
+        </div>
+    </div>
+</form>
+
+{% else %}
+<div class="text-center text-gray-500 py-4">
+    Invalid action specified.
+</div>
+{% endif %}

@@ -1,0 +1,175 @@
+{% extends 'base.html' %}
+
+{% block title %}{% if object %}Edit Tire{% else %}Add New Tire{% endif %} - SAPNA CARTING{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-3xl font-bold text-gray-800">{% if object %}Edit Tire{% else %}Add New Tire{% endif %}</h1>
+        <a href="{% url 'tire-list' %}" class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-xl transition-colors">
+            Back to List
+        </a>
+    </div>
+
+    <div class="bg-white p-6 rounded-xl shadow border">
+        <form method="post" class="space-y-6">
+            {% csrf_token %}
+
+            <!-- Serial Number -->
+            <div>
+                <label for="{{ form.serial_number.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
+                    Serial Number
+                </label>
+                {{ form.serial_number }}
+                {% if form.serial_number.errors %}
+                <div class="mt-1 text-sm text-red-600">{{ form.serial_number.errors.0 }}</div>
+                {% endif %}
+            </div>
+
+            <!-- Brand -->
+            <div>
+                <label for="{{ form.brand.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
+                    Brand
+                </label>
+                {{ form.brand }}
+                {% if form.brand.errors %}
+                <div class="mt-1 text-sm text-red-600">{{ form.brand.errors.0 }}</div>
+                {% endif %}
+            </div>
+
+            <!-- Status -->
+            <div>
+                <label for="{{ form.status.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
+                    Status
+                </label>
+                {{ form.status }}
+                {% if form.status.errors %}
+                <div class="mt-1 text-sm text-red-600">{{ form.status.errors.0 }}</div>
+                {% endif %}
+            </div>
+
+            <!-- Truck (only show if status is MOUNTED or editing) -->
+            {% if object.status == 'MOUNTED' or not object %}
+            <div id="truck-field">
+                <label for="{{ form.truck.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
+                    Truck
+                </label>
+                {{ form.truck }}
+                {% if form.truck.errors %}
+                <div class="mt-1 text-sm text-red-600">{{ form.truck.errors.0 }}</div>
+                {% endif %}
+            </div>
+            {% endif %}
+
+            <!-- Position (only show if status is MOUNTED or editing) -->
+            {% if object.status == 'MOUNTED' or not object %}
+            <div id="position-field">
+                <label for="{{ form.position.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
+                    Position
+                </label>
+                {{ form.position }}
+                {% if form.position.errors %}
+                <div class="mt-1 text-sm text-red-600">{{ form.position.errors.0 }}</div>
+                {% endif %}
+            </div>
+            {% endif %}
+
+            <!-- Purchase Cost -->
+            <div>
+                <label for="{{ form.purchase_cost.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
+                    Purchase Cost (₹)
+                </label>
+                {{ form.purchase_cost }}
+                {% if form.purchase_cost.errors %}
+                <div class="mt-1 text-sm text-red-600">{{ form.purchase_cost.errors.0 }}</div>
+                {% endif %}
+            </div>
+
+            <!-- Mounting Cost -->
+            <div>
+                <label for="{{ form.mounting_cost.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
+                    Mounting Cost (₹)
+                </label>
+                {{ form.mounting_cost }}
+                {% if form.mounting_cost.errors %}
+                <div class="mt-1 text-sm text-red-600">{{ form.mounting_cost.errors.0 }}</div>
+                {% endif %}
+            </div>
+
+            <!-- Repair Costs -->
+            <div>
+                <label for="{{ form.repair_costs.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
+                    Repair Costs (₹)
+                </label>
+                {{ form.repair_costs }}
+                {% if form.repair_costs.errors %}
+                <div class="mt-1 text-sm text-red-600">{{ form.repair_costs.errors.0 }}</div>
+                {% endif %}
+            </div>
+
+            <!-- Mounted at Odometer (only show if status is MOUNTED or editing) -->
+            {% if object.status == 'MOUNTED' or not object %}
+            <div id="odometer-field">
+                <label for="{{ form.mounted_at_odometer.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
+                    Mounted at Odometer (km)
+                </label>
+                {{ form.mounted_at_odometer }}
+                {% if form.mounted_at_odometer.errors %}
+                <div class="mt-1 text-sm text-red-600">{{ form.mounted_at_odometer.errors.0 }}</div>
+                {% endif %}
+            </div>
+            {% endif %}
+
+            <!-- Scrap Reason (only show if status is SCRAPPED) -->
+            {% if object.status == 'SCRAPPED' %}
+            <div>
+                <label for="{{ form.scrap_reason.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
+                    Scrap Reason
+                </label>
+                {{ form.scrap_reason }}
+                {% if form.scrap_reason.errors %}
+                <div class="mt-1 text-sm text-red-600">{{ form.scrap_reason.errors.0 }}</div>
+                {% endif %}
+            </div>
+            {% endif %}
+
+            <div class="flex justify-end gap-3 pt-6 border-t border-gray-200">
+                <button type="submit" class="bg-slate-600 hover:bg-slate-700 text-white px-6 py-2 rounded-xl transition-colors">
+                    Save Tire
+                </button>
+                <a href="{% url 'tire-list' %}" class="bg-gray-200 hover:bg-gray-300 text-gray-800 px-6 py-2 rounded-xl transition-colors">
+                    Cancel
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Auto-uppercase serial number
+    document.getElementById('{{ form.serial_number.id_for_label }}').addEventListener('input', function(e) {
+        e.target.value = e.target.value.toUpperCase();
+    });
+
+    // Show/hide fields based on status
+    document.getElementById('{{ form.status.id_for_label }}').addEventListener('change', function() {
+        const status = this.value;
+        const truckField = document.getElementById('truck-field');
+        const positionField = document.getElementById('position-field');
+        const odometerField = document.getElementById('odometer-field');
+        
+        if (status === 'MOUNTED') {
+            if (truckField) truckField.style.display = 'block';
+            if (positionField) positionField.style.display = 'block';
+            if (odometerField) odometerField.style.display = 'block';
+        } else {
+            if (truckField) truckField.style.display = 'none';
+            if (positionField) positionField.style.display = 'none';
+            if (odometerField) odometerField.style.display = 'none';
+        }
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,95 @@
+{% extends 'base.html' %}
+
+{% block title %}Tire Inventory - SAPNA CARTING{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-3xl font-bold text-gray-800">Tire Inventory</h1>
+        <a href="{% url 'tire-create' %}" class="bg-slate-600 hover:bg-slate-700 text-white px-4 py-2 rounded-xl flex items-center gap-2 transition-colors">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" />
+            </svg>
+            Add Tire
+        </a>
+    </div>
+
+    <!-- Quick Stats -->
+    <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
+        <div class="bg-white p-4 rounded-xl shadow border">
+            <div class="text-2xl font-bold text-gray-800">{{ total_tires }}</div>
+            <div class="text-sm text-gray-500">Total Tires</div>
+        </div>
+        <div class="bg-white p-4 rounded-xl shadow border">
+            <div class="text-2xl font-bold text-green-600">{{ mounted_count }}</div>
+            <div class="text-sm text-gray-500">Mounted</div>
+        </div>
+        <div class="bg-white p-4 rounded-xl shadow border">
+            <div class="text-2xl font-bold text-amber-600">{{ spare_count }}</div>
+            <div class="text-sm text-gray-500">Spare</div>
+        </div>
+        <div class="bg-white p-4 rounded-xl shadow border">
+            <div class="text-2xl font-bold text-red-600">{{ repair_count }}</div>
+            <div class="text-sm text-gray-500">Repair</div>
+        </div>
+        <div class="bg-white p-4 rounded-xl shadow border">
+            <div class="text-2xl font-bold text-gray-600">{{ scrapped_count }}</div>
+            <div class="text-sm text-gray-500">Scrapped</div>
+        </div>
+    </div>
+
+    <!-- Average Cost per KM -->
+    <div class="bg-white p-4 rounded-xl shadow border mb-6">
+        <div class="text-lg font-semibold text-gray-800">Average Cost per KM</div>
+        <div class="text-3xl font-bold text-slate-600">₹{{ avg_cost_per_km|floatformat:2 }}</div>
+    </div>
+
+    <!-- Search and Filters -->
+    <div class="bg-white p-6 rounded-xl shadow border mb-6">
+        <form method="get" class="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div class="md:col-span-2">
+                {{ search_form.search }}
+            </div>
+            <div>
+                {{ search_form.status_filter }}
+            </div>
+            <div>
+                {{ search_form.truck_filter }}
+            </div>
+            <div class="flex items-end">
+                <button type="submit" class="w-full bg-slate-600 hover:bg-slate-700 text-white px-4 py-2 rounded-xl transition-colors">
+                    Search
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Tire List -->
+    <div id="tire-list-container">
+        {% include 'fleet/tire_list_partial.html' %}
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // HTMX for dynamic search
+    document.addEventListener('DOMContentLoaded', function() {
+        const searchForm = document.querySelector('form[method="get"]');
+        if (searchForm) {
+            searchForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                const formData = new FormData(searchForm);
+                const params = new URLSearchParams(formData).toString();
+                
+                fetch(`{% url 'tire-search' %}?${params}`)
+                    .then(response => response.text())
+                    .then(html => {
+                        document.getElementById('tire-list-container').innerHTML = html;
+                    });
+            });
+        }
+    });
+</script>
+{% endblock %}

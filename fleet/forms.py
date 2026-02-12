@@ -380,6 +380,18 @@ class TireActionForm(forms.Form):
         ('R1 Left Inside', 'R1 Left Inside'),
         ('R1 Right Inside', 'R1 Right Inside'),
         ('R1 Right Outside', 'R1 Right Outside'),
+        ('R2 Left Outside', 'R2 Left Outside'),
+        ('R2 Left Inside', 'R2 Left Inside'),
+        ('R2 Right Inside', 'R2 Right Inside'),
+        ('R2 Right Outside', 'R2 Right Outside'),
+        ('R3 Left Outside', 'R3 Left Outside'),
+        ('R3 Left Inside', 'R3 Left Inside'),
+        ('R3 Right Inside', 'R3 Right Inside'),
+        ('R3 Right Outside', 'R3 Right Outside'),
+        ('R4 Left Outside', 'R4 Left Outside'),
+        ('R4 Left Inside', 'R4 Left Inside'),
+        ('R4 Right Inside', 'R4 Right Inside'),
+        ('R4 Right Outside', 'R4 Right Outside'),
     ], required=False)
     repair_cost = forms.DecimalField(required=False, widget=forms.NumberInput(attrs={
         'placeholder': 'Repair Cost (₹)',
@@ -396,6 +408,12 @@ class TireActionForm(forms.Form):
         'rows': 3,
         'class': 'w-full px-4 py-2 border border-gray-300 rounded-xl'
     }), required=False)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for field_name, field in self.fields.items():
+            if field_name not in ['action']:
+                field.widget.attrs.update({'class': 'w-full px-4 py-2 border border-gray-300 rounded-xl'})
 
 
 class TireSearchForm(forms.Form):
