@@ -1,0 +1,335 @@
+{% extends "base.html" %}
+
+{% block title %}Alert Details - {{ alert.title }} - SAPNA CARTING{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <!-- Breadcrumbs -->
+    <div class="mb-6">
+        <nav class="flex" aria-label="Breadcrumb">
+            <ol class="inline-flex items-center space-x-1 md:space-x-2 rtl:space-x-reverse">
+                {% for crumb in breadcrumbs %}
+                {% if crumb.url %}
+                <li class="inline-flex items-center">
+                    <a href="{{ crumb.url }}" class="inline-flex items-center text-sm font-medium text-gray-700 hover:text-slate-600 dark:text-gray-400 dark:hover:text-white">
+                        {{ crumb.name }}
+                    </a>
+                </li>
+                {% else %}
+                <li aria-current="page">
+                    <div class="flex items-center">
+                        <span class="mx-1 text-gray-400">/</span>
+                        <span class="text-sm font-medium text-gray-500 md:ms-2 dark:text-gray-400">{{ crumb.name }}</span>
+                    </div>
+                </li>
+                {% endif %}
+                {% endfor %}
+            </ol>
+        </nav>
+    </div>
+
+    <!-- Alert Header -->
+    <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 mb-6">
+        <div class="flex flex-col lg:flex-row lg:items-start lg:justify-between">
+            <div class="flex-1">
+                <div class="flex items-center mb-4">
+                    {% if alert.alert_level == 'CRITICAL' %}
+                    <span class="w-4 h-4 bg-red-500 rounded-full mr-3"></span>
+                    {% elif alert.alert_level == 'WARNING' %}
+                    <span class="w-4 h-4 bg-yellow-500 rounded-full mr-3"></span>
+                    {% else %}
+                    <span class="w-4 h-4 bg-blue-500 rounded-full mr-3"></span>
+                    {% endif %}
+                    <h1 class="text-2xl font-bold text-gray-800 dark:text-white">{{ alert.title }}</h1>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                    <div>
+                        <p class="text-sm text-gray-500 dark:text-gray-400 mb-1">Alert Type</p>
+                        <p class="font-medium text-gray-800 dark:text-gray-200">{{ alert.get_alert_type_display }}</p>
+                    </div>
+                    
+                    <div>
+                        <p class="text-sm text-gray-500 dark:text-gray-400 mb-1">Alert Level</p>
+                        <p class="font-medium 
+                            {% if alert.alert_level == 'CRITICAL' %}text-red-600 dark:text-red-400
+                            {% elif alert.alert_level == 'WARNING' %}text-yellow-600 dark:text-yellow-400
+                            {% else %}text-blue-600 dark:text-blue-400{% endif %}">
+                            {{ alert.get_alert_level_display }}
+                        </p>
+                    </div>
+                    
+                    <div>
+                        <p class="text-sm text-gray-500 dark:text-gray-400 mb-1">Status</p>
+                        <p class="font-medium 
+                            {% if alert.status == 'PENDING' %}text-yellow-600 dark:text-yellow-400
+                            {% elif alert.status == 'RESOLVED' %}text-green-600 dark:text-green-400
+                            {% else %}text-gray-600 dark:text-gray-400{% endif %}">
+                            {{ alert.get_status_display }}
+                        </p>
+                    </div>
+                    
+                    <div>
+                        <p class="text-sm text-gray-500 dark:text-gray-400 mb-1">Created</p>
+                        <p class="font-medium text-gray-800 dark:text-gray-200">{{ alert.created_at|date:"M d, Y H:i" }}</p>
+                    </div>
+                </div>
+                
+                <div class="mb-6">
+                    <p class="text-sm text-gray-500 dark:text-gray-400 mb-1">Description</p>
+                    <p class="text-gray-700 dark:text-gray-300">{{ alert.description }}</p>
+                </div>
+                
+                {% if alert.resolved_at %}
+                <div class="mb-6 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                    <p class="text-sm text-gray-500 dark:text-gray-400 mb-1">Resolution</p>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <p class="text-sm text-gray-500 dark:text-gray-400 mb-1">Status Changed</p>
+                            <p class="font-medium text-gray-800 dark:text-gray-200">{{ alert.resolved_at|date:"M d, Y H:i" }}</p>
+                        </div>
+                        
+                        <div>
+                            <p class="text-sm text-gray-500 dark:text-gray-400 mb-1">Resolved By</p>
+                            <p class="font-medium text-gray-800 dark:text-gray-200">{{ alert.resolved_by.get_full_name|default:alert.resolved_by.username }}</p>
+                        </div>
+                    </div>
+                    
+                    {% if alert.resolution_notes %}
+                    <div class="mt-4">
+                        <p class="text-sm text-gray-500 dark:text-gray-400 mb-1">Resolution Notes</p>
+                        <p class="text-gray-700 dark:text-gray-300">{{ alert.resolution_notes }}</p>
+                    </div>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+            
+            <div class="lg:ml-8 mt-6 lg:mt-0 flex flex-col space-y-3">
+                {% if alert.status == 'PENDING' and request.user.userprofile.role == 'ADMIN' %}
+                <a href="{% url 'fleet:alert-update' alert.id %}" class="px-4 py-2 bg-slate-600 text-white rounded-xl hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2 text-center">
+                    <i class="fas fa-edit mr-2"></i>Update Alert
+                </a>
+                
+                <button onclick="resolveAlert({{ alert.id }})" class="px-4 py-2 bg-green-600 text-white rounded-xl hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2">
+                    <i class="fas fa-check-circle mr-2"></i>Resolve
+                </button>
+                
+                <button onclick="dismissAlert({{ alert.id }})" class="px-4 py-2 bg-gray-600 text-white rounded-xl hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2">
+                    <i class="fas fa-ban mr-2"></i>Dismiss
+                </button>
+                {% endif %}
+                
+                <a href="{% url 'fleet:alert-list' %}" class="px-4 py-2 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2 text-center">
+                    <i class="fas fa-arrow-left mr-2"></i>Back to Alerts
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Alert Metadata -->
+    {% if alert.metadata %}
+    <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 mb-6">
+        <h3 class="text-lg font-medium text-gray-800 dark:text-white mb-4">Alert Metadata</h3>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {% for key, value in alert.metadata.items %}
+            <div>
+                <p class="text-sm text-gray-500 dark:text-gray-400 mb-1">{{ key|title }}</p>
+                <p class="font-medium text-gray-800 dark:text-gray-200">{{ value }}</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Related Truck Information -->
+    {% if alert.truck %}
+    <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 mb-6">
+        <h3 class="text-lg font-medium text-gray-800 dark:text-white mb-4">Related Truck Information</h3>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+                <p class="text-sm text-gray-500 dark:text-gray-400 mb-1">Plate Number</p>
+                <p class="font-medium text-gray-800 dark:text-gray-200">{{ alert.truck.plate_number }}</p>
+            </div>
+            
+            <div>
+                <p class="text-sm text-gray-500 dark:text-gray-400 mb-1">Transporter</p>
+                <p class="font-medium text-gray-800 dark:text-gray-200">{{ alert.truck.transporter_name }}</p>
+            </div>
+            
+            <div>
+                <p class="text-sm text-gray-500 dark:text-gray-400 mb-1">Wheel Configuration</p>
+                <p class="font-medium text-gray-800 dark:text-gray-200">{{ alert.truck.get_wheel_config_display }}</p>
+            </div>
+            
+            <div>
+                <p class="text-sm text-gray-500 dark:text-gray-400 mb-1">Fleet Type</p>
+                <p class="font-medium text-gray-800 dark:text-gray-200">{{ alert.truck.get_fleet_type_display }}</p>
+            </div>
+            
+            <div>
+                <p class="text-sm text-gray-500 dark:text-gray-400 mb-1">Current Odometer</p>
+                <p class="font-medium text-gray-800 dark:text-gray-200">{{ alert.truck.current_odometer }} km</p>
+            </div>
+            
+            <div>
+                <p class="text-sm text-gray-500 dark:text-gray-400 mb-1">Status</p>
+                <p class="font-medium text-gray-800 dark:text-gray-200">{{ alert.truck.get_status_display }}</p>
+            </div>
+        </div>
+        
+        <div class="mt-6">
+            <a href="{% url 'fleet:truck-detail' alert.truck.id %}" class="px-4 py-2 bg-slate-600 text-white rounded-xl hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2 inline-flex items-center">
+                <i class="fas fa-truck mr-2"></i>View Truck Details
+            </a>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Email Notification Status -->
+    <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
+        <h3 class="text-lg font-medium text-gray-800 dark:text-white mb-4">Notification Status</h3>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+                <p class="text-sm text-gray-500 dark:text-gray-400 mb-1">Email Sent</p>
+                <p class="font-medium text-gray-800 dark:text-gray-200">
+                    {% if alert.email_sent %}
+                    <span class="text-green-600 dark:text-green-400">Yes</span>
+                    ({{ alert.email_sent_at|date:"M d, Y H:i" }})
+                    {% else %}
+                    <span class="text-gray-500 dark:text-gray-400">No</span>
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Action Modals -->
+<div id="resolve-modal" class="fixed inset-0 bg-gray-900 bg-opacity-50 hidden items-center justify-center z-50">
+    <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-xl w-full max-w-md">
+        <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">Resolve Alert</h3>
+        <form id="resolve-form" class="space-y-4">
+            <input type="hidden" id="resolve-alert-id" name="alert_id">
+            <div>
+                <label for="resolution-notes" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Resolution Notes</label>
+                <textarea id="resolution-notes" name="resolution_notes" rows="3" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-slate-500 focus:border-transparent" placeholder="Describe how this alert was resolved..."></textarea>
+            </div>
+            <div class="flex justify-end space-x-3">
+                <button type="button" onclick="closeResolveModal()" class="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-xl hover:bg-gray-300 dark:hover:bg-gray-600">
+                    Cancel
+                </button>
+                <button type="submit" class="px-4 py-2 bg-green-600 text-white rounded-xl hover:bg-green-700">
+                    <i class="fas fa-check-circle mr-2"></i>Resolve
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div id="dismiss-modal" class="fixed inset-0 bg-gray-900 bg-opacity-50 hidden items-center justify-center z-50">
+    <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-xl w-full max-w-md">
+        <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">Dismiss Alert</h3>
+        <form id="dismiss-form" class="space-y-4">
+            <input type="hidden" id="dismiss-alert-id" name="alert_id">
+            <div>
+                <label for="dismissal-notes" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Dismissal Reason</label>
+                <textarea id="dismissal-notes" name="dismissal_notes" rows="3" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-slate-500 focus:border-transparent" placeholder="Explain why this alert is being dismissed..."></textarea>
+            </div>
+            <div class="flex justify-end space-x-3">
+                <button type="button" onclick="closeDismissModal()" class="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-xl hover:bg-gray-300 dark:hover:bg-gray-600">
+                    Cancel
+                </button>
+                <button type="submit" class="px-4 py-2 bg-gray-600 text-white rounded-xl hover:bg-gray-700">
+                    <i class="fas fa-ban mr-2"></i>Dismiss
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Quick resolve action
+function resolveAlert(alertId) {
+    document.getElementById('resolve-alert-id').value = alertId;
+    document.getElementById('resolve-modal').classList.remove('hidden');
+    document.getElementById('resolve-modal').classList.add('flex');
+}
+
+function closeResolveModal() {
+    document.getElementById('resolve-modal').classList.add('hidden');
+    document.getElementById('resolve-modal').classList.remove('flex');
+}
+
+// Quick dismiss action
+function dismissAlert(alertId) {
+    document.getElementById('dismiss-alert-id').value = alertId;
+    document.getElementById('dismiss-modal').classList.remove('hidden');
+    document.getElementById('dismiss-modal').classList.add('flex');
+}
+
+function closeDismissModal() {
+    document.getElementById('dismiss-modal').classList.add('hidden');
+    document.getElementById('dismiss-modal').classList.remove('flex');
+}
+
+// Handle form submissions
+document.getElementById('resolve-form').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const alertId = document.getElementById('resolve-alert-id').value;
+    const notes = document.getElementById('resolution-notes').value;
+    
+    fetch(`/fleet/alerts/${alertId}/resolve/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-CSRFToken': '{{ csrf_token }}'
+        },
+        body: `resolution_notes=${encodeURIComponent(notes)}`
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            window.location.href = '{% url "fleet:alert-list" %}';
+        } else {
+            alert('Failed to resolve alert: ' + data.message);
+        }
+    })
+    .catch(error => {
+        alert('Error resolving alert: ' + error.message);
+    });
+});
+
+document.getElementById('dismiss-form').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const alertId = document.getElementById('dismiss-alert-id').value;
+    const notes = document.getElementById('dismissal-notes').value;
+    
+    fetch(`/fleet/alerts/${alertId}/dismiss/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-CSRFToken': '{{ csrf_token }}'
+        },
+        body: `dismissal_notes=${encodeURIComponent(notes)}`
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            window.location.href = '{% url "fleet:alert-list" %}';
+        } else {
+            alert('Failed to dismiss alert: ' + data.message);
+        }
+    })
+    .catch(error => {
+        alert('Error dismissing alert: ' + error.message);
+    });
+});
+</script>
+{% endblock %}

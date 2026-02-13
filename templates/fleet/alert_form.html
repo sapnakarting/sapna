@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+
+{% block title %}{% if object %}Update Alert - {{ object.title }}{% else %}Create Alert{% endif %} - SAPNA CARTING{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <!-- Breadcrumbs -->
+    <div class="mb-6">
+        <nav class="flex" aria-label="Breadcrumb">
+            <ol class="inline-flex items-center space-x-1 md:space-x-2 rtl:space-x-reverse">
+                {% for crumb in breadcrumbs %}
+                {% if crumb.url %}
+                <li class="inline-flex items-center">
+                    <a href="{{ crumb.url }}" class="inline-flex items-center text-sm font-medium text-gray-700 hover:text-slate-600 dark:text-gray-400 dark:hover:text-white">
+                        {{ crumb.name }}
+                    </a>
+                </li>
+                {% else %}
+                <li aria-current="page">
+                    <div class="flex items-center">
+                        <span class="mx-1 text-gray-400">/</span>
+                        <span class="text-sm font-medium text-gray-500 md:ms-2 dark:text-gray-400">{{ crumb.name }}</span>
+                    </div>
+                </li>
+                {% endif %}
+                {% endfor %}
+            </ol>
+        </nav>
+    </div>
+
+    <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
+        <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-6">
+            <div>
+                <h1 class="text-2xl font-bold text-gray-800 dark:text-white mb-2">
+                    {% if object %}Update Alert - {{ object.title }}{% else %}Create Alert{% endif %}
+                </h1>
+                <p class="text-gray-600 dark:text-gray-300">Manage alert details and resolution status.</p>
+            </div>
+            
+            <div class="mt-4 lg:mt-0">
+                <a href="{% url 'fleet:alert-list' %}" class="px-4 py-2 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2 inline-flex items-center">
+                    <i class="fas fa-arrow-left mr-2"></i>Back to Alerts
+                </a>
+            </div>
+        </div>
+
+        <form method="post" class="space-y-6">
+            {% csrf_token %}
+
+            <!-- Alert Information -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <label for="{{ form.status.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Status
+                    </label>
+                    {{ form.status }}
+                    {% if form.status.help_text %}
+                    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">{{ form.status.help_text }}</p>
+                    {% endif %}
+                    {% for error in form.status.errors %}
+                    <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ error }}</p>
+                    {% endfor %}
+                </div>
+
+                <div>
+                    <label for="{{ form.resolution_notes.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Resolution Notes
+                    </label>
+                    {{ form.resolution_notes }}
+                    {% if form.resolution_notes.help_text %}
+                    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">{{ form.resolution_notes.help_text }}</p>
+                    {% endif %}
+                    {% for error in form.resolution_notes.errors %}
+                    <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ error }}</p>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Submit Button -->
+            <div class="flex justify-end">
+                <button type="submit" class="px-6 py-2 bg-slate-600 text-white rounded-xl hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2 inline-flex items-center">
+                    <i class="fas fa-save mr-2"></i>Save Changes
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

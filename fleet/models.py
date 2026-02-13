@@ -224,3 +224,47 @@ class DieselPrice(models.Model):
 
     def __str__(self):
         return f"₹{self.price}/L on {self.date}"
+
+
+class Alert(models.Model):
+    """Compliance alert system for document expiry, fuel efficiency, and tire costs"""
+    class AlertType(models.TextChoices):
+        DOCUMENT_EXPIRY = 'DOCUMENT_EXPIRY', 'Document Expiry'
+        FUEL_EFFICIENCY = 'FUEL_EFFICIENCY', 'Fuel Efficiency'
+        TIRE_COST = 'TIRE_COST', 'Tire Cost'
+        GENERAL = 'GENERAL', 'General'
+
+    class AlertLevel(models.TextChoices):
+        INFO = 'INFO', 'Info'
+        WARNING = 'WARNING', 'Warning'
+        CRITICAL = 'CRITICAL', 'Critical'
+
+    class AlertStatus(models.TextChoices):
+        PENDING = 'PENDING', 'Pending'
+        RESOLVED = 'RESOLVED', 'Resolved'
+        DISMISSED = 'DISMISSED', 'Dismissed'
+
+    title = models.CharField(max_length=255)
+    alert_type = models.CharField(max_length=20, choices=AlertType.choices)
+    alert_level = models.CharField(max_length=10, choices=AlertLevel.choices, default=AlertLevel.WARNING)
+    status = models.CharField(max_length=10, choices=AlertStatus.choices, default=AlertStatus.PENDING)
+    description = models.TextField()
+    truck = models.ForeignKey(Truck, on_delete=models.SET_NULL, null=True, blank=True)
+    related_object_id = models.PositiveIntegerField(null=True, blank=True)
+    related_content_type = models.CharField(max_length=100, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    resolved_at = models.DateTimeField(null=True, blank=True)
+    resolved_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)
+    resolution_notes = models.TextField(blank=True)
+    email_sent = models.BooleanField(default=False)
+    email_sent_at = models.DateTimeField(null=True, blank=True)
+    metadata = models.JSONField(default=dict, blank=True)
+
+    def __str__(self):
+        return f"[{self.get_alert_type_display()}] {self.title} - {self.get_status_display()}"
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = 'Alert'
+        verbose_name_plural = 'Alerts'

@@ -1,0 +1,415 @@
+{% extends "base.html" %}
+
+{% block title %}Compliance Alerts - SAPNA CARTING{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <!-- Breadcrumbs -->
+    <div class="mb-6">
+        <nav class="flex" aria-label="Breadcrumb">
+            <ol class="inline-flex items-center space-x-1 md:space-x-2 rtl:space-x-reverse">
+                {% for crumb in breadcrumbs %}
+                {% if crumb.url %}
+                <li class="inline-flex items-center">
+                    <a href="{{ crumb.url }}" class="inline-flex items-center text-sm font-medium text-gray-700 hover:text-slate-600 dark:text-gray-400 dark:hover:text-white">
+                        {{ crumb.name }}
+                    </a>
+                </li>
+                {% else %}
+                <li aria-current="page">
+                    <div class="flex items-center">
+                        <span class="mx-1 text-gray-400">/</span>
+                        <span class="text-sm font-medium text-gray-500 md:ms-2 dark:text-gray-400">{{ crumb.name }}</span>
+                    </div>
+                </li>
+                {% endif %}
+                {% endfor %}
+            </ol>
+        </nav>
+    </div>
+
+    <!-- Page Header -->
+    <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-8">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-800 dark:text-white mb-2">Compliance Alerts</h1>
+            <p class="text-gray-600 dark:text-gray-300">Monitor and manage system alerts for document expiry, fuel efficiency, and tire costs.</p>
+        </div>
+        
+        <div class="mt-4 lg:mt-0 flex items-center space-x-4">
+            <!-- Alert Stats -->
+            <div class="flex items-center space-x-4">
+                <div class="flex items-center">
+                    <span class="w-3 h-3 bg-red-500 rounded-full mr-2"></span>
+                    <span class="text-sm font-medium text-gray-700 dark:text-gray-300">{{ stats.critical }} Critical</span>
+                </div>
+                <div class="flex items-center">
+                    <span class="w-3 h-3 bg-yellow-500 rounded-full mr-2"></span>
+                    <span class="text-sm font-medium text-gray-700 dark:text-gray-300">{{ stats.warning }} Warning</span>
+                </div>
+                <div class="flex items-center">
+                    <span class="w-3 h-3 bg-blue-500 rounded-full mr-2"></span>
+                    <span class="text-sm font-medium text-gray-700 dark:text-gray-300">{{ stats.info }} Info</span>
+                </div>
+            </div>
+            
+            <!-- Refresh Button -->
+            <button onclick="window.location.reload()" class="px-4 py-2 bg-slate-600 text-white rounded-xl hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2">
+                <i class="fas fa-sync-alt mr-2"></i>Refresh
+            </button>
+        </div>
+    </div>
+
+    <!-- Alert Summary Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
+            <div class="flex items-center justify-between mb-4">
+                <div>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">Total Alerts</p>
+                    <p class="text-3xl font-bold text-gray-800 dark:text-white">{{ stats.total }}</p>
+                </div>
+                <div class="w-12 h-12 bg-slate-100 dark:bg-gray-700 rounded-full flex items-center justify-center">
+                    <i class="fas fa-bell text-slate-600 dark:text-gray-300 text-xl"></i>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
+            <div class="flex items-center justify-between mb-4">
+                <div>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">Pending Alerts</p>
+                    <p class="text-3xl font-bold text-yellow-600 dark:text-yellow-400">{{ stats.pending }}</p>
+                </div>
+                <div class="w-12 h-12 bg-yellow-100 dark:bg-yellow-900 rounded-full flex items-center justify-center">
+                    <i class="fas fa-exclamation-triangle text-yellow-600 dark:text-yellow-400 text-xl"></i>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
+            <div class="flex items-center justify-between mb-4">
+                <div>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">Resolved Alerts</p>
+                    <p class="text-3xl font-bold text-green-600 dark:text-green-400">{{ stats.resolved }}</p>
+                </div>
+                <div class="w-12 h-12 bg-green-100 dark:bg-green-900 rounded-full flex items-center justify-center">
+                    <i class="fas fa-check-circle text-green-600 dark:text-green-400 text-xl"></i>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
+            <div class="flex items-center justify-between mb-4">
+                <div>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">Dismissed Alerts</p>
+                    <p class="text-3xl font-bold text-gray-500 dark:text-gray-400">{{ stats.dismissed }}</p>
+                </div>
+                <div class="w-12 h-12 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center">
+                    <i class="fas fa-ban text-gray-500 dark:text-gray-400 text-xl"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 mb-8">
+        <form method="get" class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Alert Type</label>
+                <select name="alert_type" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-slate-500 focus:border-transparent">
+                    <option value="">All Types</option>
+                    {% for type_choice in alert_types %}
+                    <option value="{{ type_choice.0 }}" {% if request.GET.alert_type == type_choice.0 %}selected{% endif %}>{{ type_choice.1 }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Status</label>
+                <select name="status" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-slate-500 focus:border-transparent">
+                    <option value="">All Statuses</option>
+                    {% for status_choice in alert_statuses %}
+                    <option value="{{ status_choice.0 }}" {% if request.GET.status == status_choice.0 %}selected{% endif %}>{{ status_choice.1 }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Level</label>
+                <select name="level" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-slate-500 focus:border-transparent">
+                    <option value="">All Levels</option>
+                    {% for level_choice in alert_levels %}
+                    <option value="{{ level_choice.0 }}" {% if request.GET.level == level_choice.0 %}selected{% endif %}>{{ level_choice.1 }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Truck</label>
+                <input type="text" name="truck" placeholder="Search truck plate..." value="{{ request.GET.truck }}" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-slate-500 focus:border-transparent">
+            </div>
+
+            <div class="flex items-end">
+                <button type="submit" class="w-full px-4 py-2 bg-slate-600 text-white rounded-xl hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2">
+                    <i class="fas fa-filter mr-2"></i>Apply Filters
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Alerts Table -->
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full divide-y divide-gray-200 dark:divide-gray-700">
+                <thead class="bg-gray-50 dark:bg-gray-700">
+                    <tr>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                            <input type="checkbox" id="select-all" class="h-4 w-4 text-slate-600 border-gray-300 rounded focus:ring-slate-500">
+                        </th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Alert</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Type</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Level</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Truck</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Status</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Created</th>
+                        <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                    {% for alert in alerts %}
+                    <tr class="hover:bg-gray-50 dark:hover:bg-gray-700">
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <input type="checkbox" name="alert_ids" value="{{ alert.id }}" class="h-4 w-4 text-slate-600 border-gray-300 rounded focus:ring-slate-500 alert-checkbox">
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="flex items-center">
+                                {% if alert.alert_level == 'CRITICAL' %}
+                                <span class="w-3 h-3 bg-red-500 rounded-full mr-3"></span>
+                                {% elif alert.alert_level == 'WARNING' %}
+                                <span class="w-3 h-3 bg-yellow-500 rounded-full mr-3"></span>
+                                {% else %}
+                                <span class="w-3 h-3 bg-blue-500 rounded-full mr-3"></span>
+                                {% endif %}
+                                <div>
+                                    <a href="{% url 'fleet:alert-detail' alert.id %}" class="text-sm font-medium text-gray-900 dark:text-white hover:text-slate-600 dark:hover:text-slate-400">{{ alert.title }}</a>
+                                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">{{ alert.description|truncatechars:100 }}</p>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200">
+                                {{ alert.get_alert_type_display }}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+                                {% if alert.alert_level == 'CRITICAL' %}bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200
+                                {% elif alert.alert_level == 'WARNING' %}bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200
+                                {% else %}bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200{% endif %}">
+                                {{ alert.get_alert_level_display }}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            {% if alert.truck %}
+                            <a href="{% url 'fleet:truck-detail' alert.truck.id %}" class="text-sm text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-300">{{ alert.truck.plate_number }}</a>
+                            {% else %}
+                            <span class="text-sm text-gray-500 dark:text-gray-400">N/A</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+                                {% if alert.status == 'PENDING' %}bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200
+                                {% elif alert.status == 'RESOLVED' %}bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200
+                                {% else %}bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200{% endif %}">
+                                {{ alert.get_status_display }}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="text-sm text-gray-500 dark:text-gray-400">{{ alert.created_at|date:"M d, Y H:i" }}</span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                            <div class="flex items-center justify-end space-x-2">
+                                {% if alert.status == 'PENDING' and request.user.userprofile.role == 'ADMIN' %}
+                                <button onclick="resolveAlert({{ alert.id }})" class="text-green-600 dark:text-green-400 hover:text-green-800 dark:hover:text-green-300" title="Resolve">
+                                    <i class="fas fa-check-circle"></i>
+                                </button>
+                                <button onclick="dismissAlert({{ alert.id }})" class="text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-300" title="Dismiss">
+                                    <i class="fas fa-ban"></i>
+                                </button>
+                                {% endif %}
+                                <a href="{% url 'fleet:alert-update' alert.id %}" class="text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-300" title="Edit">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <a href="{% url 'fleet:alert-detail' alert.id %}" class="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300" title="View Details">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8" class="px-6 py-4 text-center text-sm text-gray-500 dark:text-gray-400">
+                            No alerts found.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Pagination -->
+    {% if is_paginated %}
+    <div class="mt-6 flex flex-col sm:flex-row items-center justify-between">
+        <div class="text-sm text-gray-500 dark:text-gray-400">
+            Showing {{ page_obj.start_index }} to {{ page_obj.end_index }} of {{ paginator.count }} alerts
+        </div>
+        <div class="mt-4 sm:mt-0 flex space-x-2">
+            {% if page_obj.has_previous %}
+            <a href="?page={{ page_obj.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" class="px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">
+                Previous
+            </a>
+            {% endif %}
+            
+            {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endfor %}" class="px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">
+                Next
+            </a>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Quick Action Modals -->
+<div id="resolve-modal" class="fixed inset-0 bg-gray-900 bg-opacity-50 hidden items-center justify-center z-50">
+    <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-xl w-full max-w-md">
+        <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">Resolve Alert</h3>
+        <form id="resolve-form" class="space-y-4">
+            <input type="hidden" id="resolve-alert-id" name="alert_id">
+            <div>
+                <label for="resolution-notes" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Resolution Notes</label>
+                <textarea id="resolution-notes" name="resolution_notes" rows="3" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-slate-500 focus:border-transparent" placeholder="Describe how this alert was resolved..."></textarea>
+            </div>
+            <div class="flex justify-end space-x-3">
+                <button type="button" onclick="closeResolveModal()" class="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-xl hover:bg-gray-300 dark:hover:bg-gray-600">
+                    Cancel
+                </button>
+                <button type="submit" class="px-4 py-2 bg-green-600 text-white rounded-xl hover:bg-green-700">
+                    <i class="fas fa-check-circle mr-2"></i>Resolve
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div id="dismiss-modal" class="fixed inset-0 bg-gray-900 bg-opacity-50 hidden items-center justify-center z-50">
+    <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-xl w-full max-w-md">
+        <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">Dismiss Alert</h3>
+        <form id="dismiss-form" class="space-y-4">
+            <input type="hidden" id="dismiss-alert-id" name="alert_id">
+            <div>
+                <label for="dismissal-notes" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Dismissal Reason</label>
+                <textarea id="dismissal-notes" name="dismissal_notes" rows="3" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-slate-500 focus:border-transparent" placeholder="Explain why this alert is being dismissed..."></textarea>
+            </div>
+            <div class="flex justify-end space-x-3">
+                <button type="button" onclick="closeDismissModal()" class="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-xl hover:bg-gray-300 dark:hover:bg-gray-600">
+                    Cancel
+                </button>
+                <button type="submit" class="px-4 py-2 bg-gray-600 text-white rounded-xl hover:bg-gray-700">
+                    <i class="fas fa-ban mr-2"></i>Dismiss
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Select all checkboxes
+document.getElementById('select-all').addEventListener('change', function() {
+    const checkboxes = document.querySelectorAll('.alert-checkbox');
+    checkboxes.forEach(checkbox => {
+        checkbox.checked = this.checked;
+    });
+});
+
+// Quick resolve action
+function resolveAlert(alertId) {
+    document.getElementById('resolve-alert-id').value = alertId;
+    document.getElementById('resolve-modal').classList.remove('hidden');
+    document.getElementById('resolve-modal').classList.add('flex');
+}
+
+function closeResolveModal() {
+    document.getElementById('resolve-modal').classList.add('hidden');
+    document.getElementById('resolve-modal').classList.remove('flex');
+}
+
+// Quick dismiss action
+function dismissAlert(alertId) {
+    document.getElementById('dismiss-alert-id').value = alertId;
+    document.getElementById('dismiss-modal').classList.remove('hidden');
+    document.getElementById('dismiss-modal').classList.add('flex');
+}
+
+function closeDismissModal() {
+    document.getElementById('dismiss-modal').classList.add('hidden');
+    document.getElementById('dismiss-modal').classList.remove('flex');
+}
+
+// Handle form submissions with HTMX-like behavior
+document.getElementById('resolve-form').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const alertId = document.getElementById('resolve-alert-id').value;
+    const notes = document.getElementById('resolution-notes').value;
+    
+    fetch(`/fleet/alerts/${alertId}/resolve/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-CSRFToken': '{{ csrf_token }}'
+        },
+        body: `resolution_notes=${encodeURIComponent(notes)}`
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            window.location.reload();
+        } else {
+            alert('Failed to resolve alert: ' + data.message);
+        }
+    })
+    .catch(error => {
+        alert('Error resolving alert: ' + error.message);
+    });
+});
+
+document.getElementById('dismiss-form').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const alertId = document.getElementById('dismiss-alert-id').value;
+    const notes = document.getElementById('dismissal-notes').value;
+    
+    fetch(`/fleet/alerts/${alertId}/dismiss/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-CSRFToken': '{{ csrf_token }}'
+        },
+        body: `dismissal_notes=${encodeURIComponent(notes)}`
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            window.location.reload();
+        } else {
+            alert('Failed to dismiss alert: ' + data.message);
+        }
+    })
+    .catch(error => {
+        alert('Error dismissing alert: ' + error.message);
+    });
+});
+</script>
+{% endblock %}
