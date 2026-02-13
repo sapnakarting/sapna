@@ -12,17 +12,24 @@
     </div>
 
     {% if settings %}
-    <div class="space-y-6">
+    <form method="post" class="space-y-6">
+        {% csrf_token %}
+        
         <!-- Compliance Settings -->
         <div class="rounded-xl bg-white p-6 shadow-sm">
             <h2 class="text-lg font-semibold text-slate-900 mb-4">Compliance Settings</h2>
-            <div class="space-y-3">
-                <div class="flex justify-between items-center py-2 border-b border-slate-100">
-                    <div>
-                        <p class="font-medium text-slate-700">Compliance Alert Email</p>
-                        <p class="text-sm text-slate-500">Email address for compliance notifications</p>
+            <div class="space-y-4">
+                <div class="py-2">
+                    <label for="{{ form.compliance_alert_email.id_for_label }}" class="block text-sm font-medium text-slate-700 mb-1">
+                        Compliance Alert Email
+                    </label>
+                    <p class="text-xs text-slate-500 mb-2">Email address for compliance notifications</p>
+                    {{ form.compliance_alert_email }}
+                    {% if form.compliance_alert_email.errors %}
+                    <div class="text-red-500 text-sm mt-1">
+                        {{ form.compliance_alert_email.errors.0 }}
                     </div>
-                    <span class="text-amber-600 font-semibold">{{ settings.compliance_alert_email }}</span>
+                    {% endif %}
                 </div>
             </div>
         </div>
@@ -30,34 +37,57 @@
         <!-- Fuel Efficiency Settings -->
         <div class="rounded-xl bg-white p-6 shadow-sm">
             <h2 class="text-lg font-semibold text-slate-900 mb-4">Fuel Efficiency Benchmarks</h2>
-            <div class="space-y-3">
-                <div class="flex justify-between items-center py-2 border-b border-slate-100">
-                    <div>
-                        <p class="font-medium text-slate-700">Global Fuel Efficiency Benchmark</p>
-                        <p class="text-sm text-slate-500">Target km per liter for entire fleet</p>
+            <div class="space-y-4">
+                <div class="py-2">
+                    <label for="{{ form.global_fuel_efficiency_benchmark.id_for_label }}" class="block text-sm font-medium text-slate-700 mb-1">
+                        Global Fuel Efficiency Benchmark
+                    </label>
+                    <p class="text-xs text-slate-500 mb-2">Target km per liter for entire fleet</p>
+                    {{ form.global_fuel_efficiency_benchmark }}
+                    {% if form.global_fuel_efficiency_benchmark.errors %}
+                    <div class="text-red-500 text-sm mt-1">
+                        {{ form.global_fuel_efficiency_benchmark.errors.0 }}
                     </div>
-                    <span class="text-emerald-600 font-semibold">{{ settings.global_fuel_efficiency_benchmark }} km/L</span>
+                    {% endif %}
                 </div>
-                <div class="flex justify-between items-center py-2 border-b border-slate-100">
-                    <div>
-                        <p class="font-medium text-slate-700">Per Trip Diesel Benchmark</p>
-                        <p class="text-sm text-slate-500">Expected diesel consumption per trip</p>
+                
+                <div class="py-2">
+                    <label for="{{ form.per_trip_diesel_benchmark.id_for_label }}" class="block text-sm font-medium text-slate-700 mb-1">
+                        Per Trip Diesel Benchmark
+                    </label>
+                    <p class="text-xs text-slate-500 mb-2">Expected diesel consumption per trip</p>
+                    {{ form.per_trip_diesel_benchmark }}
+                    {% if form.per_trip_diesel_benchmark.errors %}
+                    <div class="text-red-500 text-sm mt-1">
+                        {{ form.per_trip_diesel_benchmark.errors.0 }}
                     </div>
-                    <span class="text-slate-600 font-semibold">₹{{ settings.per_trip_diesel_benchmark }}</span>
+                    {% endif %}
                 </div>
-                <div class="flex justify-between items-center py-2 border-b border-slate-100">
-                    <div>
-                        <p class="font-medium text-slate-700">Per Tonnage Diesel Benchmark</p>
-                        <p class="text-sm text-slate-500">Expected diesel per ton of material</p>
+                
+                <div class="py-2">
+                    <label for="{{ form.per_tonnage_diesel_benchmark.id_for_label }}" class="block text-sm font-medium text-slate-700 mb-1">
+                        Per Tonnage Diesel Benchmark
+                    </label>
+                    <p class="text-xs text-slate-500 mb-2">Expected diesel per ton of material</p>
+                    {{ form.per_tonnage_diesel_benchmark }}
+                    {% if form.per_tonnage_diesel_benchmark.errors %}
+                    <div class="text-red-500 text-sm mt-1">
+                        {{ form.per_tonnage_diesel_benchmark.errors.0 }}
                     </div>
-                    <span class="text-slate-600 font-semibold">₹{{ settings.per_tonnage_diesel_benchmark }}</span>
+                    {% endif %}
                 </div>
-                <div class="flex justify-between items-center py-2">
-                    <div>
-                        <p class="font-medium text-slate-700">Check Frequency</p>
-                        <p class="text-sm text-slate-500">How often to check fuel efficiency</p>
+                
+                <div class="py-2">
+                    <label for="{{ form.fuel_efficiency_check_frequency.id_for_label }}" class="block text-sm font-medium text-slate-700 mb-1">
+                        Check Frequency
+                    </label>
+                    <p class="text-xs text-slate-500 mb-2">How often to check fuel efficiency</p>
+                    {{ form.fuel_efficiency_check_frequency }}
+                    {% if form.fuel_efficiency_check_frequency.errors %}
+                    <div class="text-red-500 text-sm mt-1">
+                        {{ form.fuel_efficiency_check_frequency.errors.0 }}
                     </div>
-                    <span class="text-slate-600 font-semibold">{{ settings.get_fuel_efficiency_check_frequency_display }}</span>
+                    {% endif %}
                 </div>
             </div>
         </div>
@@ -65,20 +95,31 @@
         <!-- Fleet Efficiency Thresholds -->
         <div class="rounded-xl bg-white p-6 shadow-sm">
             <h2 class="text-lg font-semibold text-slate-900 mb-4">Fleet Efficiency Thresholds</h2>
-            <div class="space-y-3">
-                <div class="flex justify-between items-center py-2 border-b border-slate-100">
-                    <div>
-                        <p class="font-medium text-slate-700">Minimum Threshold</p>
-                        <p class="text-sm text-slate-500">Alert if efficiency falls below this value</p>
+            <div class="space-y-4">
+                <div class="py-2">
+                    <label for="{{ form.fleet_efficiency_threshold_min.id_for_label }}" class="block text-sm font-medium text-slate-700 mb-1">
+                        Minimum Threshold
+                    </label>
+                    <p class="text-xs text-slate-500 mb-2">Alert if efficiency falls below this value</p>
+                    {{ form.fleet_efficiency_threshold_min }}
+                    {% if form.fleet_efficiency_threshold_min.errors %}
+                    <div class="text-red-500 text-sm mt-1">
+                        {{ form.fleet_efficiency_threshold_min.errors.0 }}
                     </div>
-                    <span class="text-rose-600 font-semibold">{{ settings.fleet_efficiency_threshold_min }} km/L</span>
+                    {% endif %}
                 </div>
-                <div class="flex justify-between items-center py-2">
-                    <div>
-                        <p class="font-medium text-slate-700">Maximum Threshold</p>
-                        <p class="text-sm text-slate-500">Alert if efficiency exceeds this value</p>
+                
+                <div class="py-2">
+                    <label for="{{ form.fleet_efficiency_threshold_max.id_for_label }}" class="block text-sm font-medium text-slate-700 mb-1">
+                        Maximum Threshold
+                    </label>
+                    <p class="text-xs text-slate-500 mb-2">Alert if efficiency exceeds this value</p>
+                    {{ form.fleet_efficiency_threshold_max }}
+                    {% if form.fleet_efficiency_threshold_max.errors %}
+                    <div class="text-red-500 text-sm mt-1">
+                        {{ form.fleet_efficiency_threshold_max.errors.0 }}
                     </div>
-                    <span class="text-emerald-600 font-semibold">{{ settings.fleet_efficiency_threshold_max }} km/L</span>
+                    {% endif %}
                 </div>
             </div>
         </div>
@@ -97,13 +138,33 @@
                 </div>
             </div>
         </div>
-    </div>
+
+        <!-- Submit Button -->
+        <div class="flex justify-end">
+            <button type="submit" class="bg-amber-500 hover:bg-amber-600 text-white px-8 py-3 rounded-xl font-semibold transition-colors focus:ring-2 focus:ring-amber-500 focus:ring-offset-2">
+                Save Settings
+            </button>
+        </div>
+    </form>
     {% else %}
-    <div class="rounded-xl bg-white p-12 shadow-sm text-center">
-        <div class="text-6xl mb-4">⚙️</div>
-        <h3 class="text-xl font-semibold text-slate-900 mb-2">No Settings Configured</h3>
-        <p class="text-slate-500">System settings need to be initialized by an administrator.</p>
-    </div>
+    <form method="post" class="rounded-xl bg-white p-8 shadow-sm">
+        {% csrf_token %}
+        <div class="text-center mb-6">
+            <div class="text-6xl mb-4">⚙️</div>
+            <h3 class="text-xl font-semibold text-slate-900 mb-2">Initialize System Settings</h3>
+            <p class="text-slate-500">Configure system settings for the first time</p>
+        </div>
+        
+        <div class="space-y-4">
+            {{ form.as_p }}
+        </div>
+        
+        <div class="flex justify-end mt-6">
+            <button type="submit" class="bg-amber-500 hover:bg-amber-600 text-white px-8 py-3 rounded-xl font-semibold transition-colors">
+                Initialize Settings
+            </button>
+        </div>
+    </form>
     {% endif %}
 </div>
 {% endblock %}
