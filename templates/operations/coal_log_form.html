@@ -1,0 +1,192 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="max-w-5xl mx-auto">
+    <h1 class="text-3xl font-black text-slate-900 mb-6">
+        {% if form.instance.pk %}Edit Coal Entry{% else %}Add New Coal Entry{% endif %}
+    </h1>
+    
+    <form method="post" enctype="multipart/form-data" class="bg-white p-8 rounded-2xl shadow-lg space-y-8">
+        {% csrf_token %}
+        
+        <!-- Trip Information -->
+        <div class="space-y-4">
+            <h2 class="text-xl font-bold text-slate-900 border-b pb-2">Trip Information</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Truck *</label>
+                    {{ form.truck }}
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Date *</label>
+                    {{ form.date }}
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Pass Number *</label>
+                    {{ form.pass_no }}
+                </div>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Origin Site *</label>
+                    {{ form.origin_site }}
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Destination Site *</label>
+                    {{ form.destination_site }}
+                </div>
+            </div>
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-2">Trip Remarks</label>
+                {{ form.trip_remarks }}
+            </div>
+        </div>
+        
+        <!-- Weight Information with Auto-calculation -->
+        <div class="space-y-4">
+            <h2 class="text-xl font-bold text-slate-900 border-b pb-2">Weight Information</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Gross Weight (Tons) *</label>
+                    {{ form.gross_weight }}
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Tare Weight (Tons) *</label>
+                    {{ form.tare_weight }}
+                </div>
+                <div class="p-4 bg-emerald-50 border-2 border-emerald-500 rounded-xl">
+                    <label class="block text-sm font-semibold text-emerald-700 mb-2">Net Weight (Auto-calculated)</label>
+                    <p class="text-3xl font-black text-emerald-700" id="net-weight-display">
+                        {% if form.instance.pk %}{{ form.instance.net_weight|floatformat:2 }}{% else %}0.00{% endif %}
+                    </p>
+                    <p class="text-sm text-emerald-600">Tons</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Diesel Information with Auto-calculation -->
+        <div class="space-y-4">
+            <h2 class="text-xl font-bold text-slate-900 border-b pb-2">Diesel Information</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Diesel Liters *</label>
+                    {{ form.diesel_liters }}
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Diesel Rate (₹/L) *</label>
+                    {{ form.diesel_rate }}
+                </div>
+                <div class="p-4 bg-purple-50 border-2 border-purple-500 rounded-xl">
+                    <label class="block text-sm font-semibold text-purple-700 mb-2">Diesel Cost (Auto-calculated)</label>
+                    <p class="text-3xl font-black text-purple-700" id="diesel-cost-display">
+                        {% if form.instance.pk %}{{ form.instance.diesel_cost|floatformat:2 }}{% else %}0.00{% endif %}
+                    </p>
+                    <p class="text-sm text-purple-600">₹</p>
+                </div>
+            </div>
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-2">Diesel Remarks</label>
+                {{ form.diesel_remarks }}
+            </div>
+        </div>
+        
+        <!-- Adjustments -->
+        <div class="space-y-4">
+            <h2 class="text-xl font-bold text-slate-900 border-b pb-2">Adjustments</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Diesel Adjustment (₹)</label>
+                    {{ form.diesel_adjustment }}
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Air Adjustment (₹)</label>
+                    {{ form.air_adjustment }}
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Trip Adjustment (₹)</label>
+                    {{ form.trip_adjustment }}
+                </div>
+            </div>
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-2">Air Remarks</label>
+                {{ form.air_remarks }}
+            </div>
+        </div>
+        
+        <!-- Document Uploads -->
+        <div class="space-y-4">
+            <h2 class="text-xl font-bold text-slate-900 border-b pb-2">Documents</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Document 1</label>
+                    <input type="file" name="document_1" accept=".pdf,.jpg,.jpeg,.png"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-slate-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Document 2</label>
+                    <input type="file" name="document_2" accept=".pdf,.jpg,.jpeg,.png"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-slate-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Document 3</label>
+                    <input type="file" name="document_3" accept=".pdf,.jpg,.jpeg,.png"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-slate-500">
+                </div>
+            </div>
+            {% if form.instance.pk and form.instance.documents %}
+            <div class="mt-4">
+                <p class="text-sm font-semibold text-gray-700 mb-2">Existing Documents:</p>
+                <div class="flex flex-wrap gap-2">
+                    {% for doc in form.instance.documents %}
+                    <span class="px-3 py-1 bg-gray-100 rounded-lg text-sm">{{ doc.name }}</span>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+        
+        <!-- Submit & Cancel -->
+        <div class="flex space-x-4 pt-4 border-t">
+            <button type="submit" 
+                class="flex-1 bg-slate-900 text-white py-3 px-6 rounded-xl font-bold hover:bg-slate-800 transition-colors">
+                {% if form.instance.pk %}Update{% else %}Create{% endif %} Coal Entry
+            </button>
+            <a href="{% url 'operations:coal-log-list' %}" 
+                class="flex-1 bg-gray-200 text-gray-700 py-3 px-6 rounded-xl font-bold hover:bg-gray-300 text-center transition-colors">
+                Cancel
+            </a>
+        </div>
+    </form>
+</div>
+
+<script>
+// Auto-calculate Net Weight
+const grossWeightInput = document.querySelector('[name="gross_weight"]');
+const tareWeightInput = document.querySelector('[name="tare_weight"]');
+const netWeightDisplay = document.getElementById('net-weight-display');
+
+function calculateNetWeight() {
+    const gross = parseFloat(grossWeightInput.value) || 0;
+    const tare = parseFloat(tareWeightInput.value) || 0;
+    const net = Math.max(gross - tare, 0);
+    netWeightDisplay.textContent = net.toFixed(2);
+}
+
+if (grossWeightInput) grossWeightInput.addEventListener('input', calculateNetWeight);
+if (tareWeightInput) tareWeightInput.addEventListener('input', calculateNetWeight);
+
+// Auto-calculate Diesel Cost
+const dieselLitersInput = document.querySelector('[name="diesel_liters"]');
+const dieselRateInput = document.querySelector('[name="diesel_rate"]');
+const dieselCostDisplay = document.getElementById('diesel-cost-display');
+
+function calculateDieselCost() {
+    const liters = parseFloat(dieselLitersInput.value) || 0;
+    const rate = parseFloat(dieselRateInput.value) || 0;
+    const cost = liters * rate;
+    dieselCostDisplay.textContent = cost.toFixed(2);
+}
+
+if (dieselLitersInput) dieselLitersInput.addEventListener('input', calculateDieselCost);
+if (dieselRateInput) dieselRateInput.addEventListener('input', calculateDieselCost);
+</script>
+{% endblock %}

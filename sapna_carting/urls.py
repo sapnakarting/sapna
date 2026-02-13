@@ -8,11 +8,8 @@ urlpatterns = [
     path('', RedirectView.as_view(url='/dashboard/', permanent=False)),
     path('admin/', admin.site.urls),
     path('fleet/', include('fleet.urls')),
-
-    # Other apps will be included in future tasks
-    # path('operations/', include('operations.urls')),
-    # path('dashboard/', include('dashboard.urls')),
-    # path('settings/', include('settings_app.urls')),
+    path('operations/', include('operations.urls')),
+    path('dashboard/', include('dashboard.urls')),
 ]
 
 if settings.DEBUG:

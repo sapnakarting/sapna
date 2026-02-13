@@ -1,0 +1,62 @@
+<table class="w-full">
+    <thead class="bg-slate-900 text-white">
+        <tr>
+            <th class="px-4 py-3 text-left font-bold">Date</th>
+            <th class="px-4 py-3 text-left font-bold">Truck</th>
+            <th class="px-4 py-3 text-left font-bold">Pass No</th>
+            <th class="px-4 py-3 text-left font-bold">Net Weight</th>
+            <th class="px-4 py-3 text-left font-bold">Diesel</th>
+            <th class="px-4 py-3 text-left font-bold">Origin → Dest</th>
+            <th class="px-4 py-3 text-left font-bold">Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for log in coal_logs %}
+        <tr class="border-b hover:bg-gray-50">
+            <td class="px-4 py-3">{{ log.date|date:"d-m-Y" }}</td>
+            <td class="px-4 py-3">
+                <div class="font-bold">{{ log.truck.plate_number }}</div>
+            </td>
+            <td class="px-4 py-3 font-semibold">{{ log.pass_no }}</td>
+            <td class="px-4 py-3">
+                <span class="font-bold text-emerald-600">{{ log.net_weight|floatformat:2 }} T</span>
+            </td>
+            <td class="px-4 py-3">
+                <div class="text-sm">
+                    <div>{{ log.diesel_liters|floatformat:2 }} L</div>
+                    <div class="text-gray-500">₹{{ log.diesel_cost|floatformat:2 }}</div>
+                </div>
+            </td>
+            <td class="px-4 py-3 text-sm">
+                <div>{{ log.origin_site }}</div>
+                <div class="text-gray-400">→ {{ log.destination_site }}</div>
+            </td>
+            <td class="px-4 py-3 space-x-2">
+                <a href="{% url 'operations:coal-log-detail' log.id %}" class="text-blue-600 hover:underline font-semibold">View</a>
+                <a href="{% url 'operations:coal-log-update' log.id %}" class="text-green-600 hover:underline font-semibold">Edit</a>
+            </td>
+        </tr>
+        {% empty %}
+        <tr>
+            <td colspan="7" class="px-6 py-8 text-center text-gray-500">
+                <div class="text-4xl mb-2">🪨</div>
+                <p>No coal logs found. Add your first coal entry!</p>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+{% if page_obj.has_other_pages %}
+<div class="px-6 py-4 bg-gray-50 border-t flex justify-center">
+    <div class="flex space-x-2">
+        {% if page_obj.has_previous %}
+        <a href="?page={{ page_obj.previous_page_number }}" class="px-3 py-1 bg-white border rounded-lg hover:bg-gray-100">Previous</a>
+        {% endif %}
+        <span class="px-3 py-1 bg-slate-900 text-white rounded-lg">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+        {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}" class="px-3 py-1 bg-white border rounded-lg hover:bg-gray-100">Next</a>
+        {% endif %}
+    </div>
+</div>
+{% endif %}

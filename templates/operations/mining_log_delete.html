@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="max-w-2xl mx-auto">
+    <div class="bg-white p-8 rounded-2xl shadow-lg">
+        <div class="text-center">
+            <div class="text-6xl mb-4">⚠️</div>
+            <h1 class="text-3xl font-black text-slate-900 mb-2">Delete Mining Entry</h1>
+            <p class="text-gray-600 mb-6">Are you sure you want to delete this mining entry? This action cannot be undone.</p>
+        </div>
+        
+        <div class="bg-gray-50 p-6 rounded-xl mb-6">
+            <div class="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                    <span class="text-gray-500">Chalan No:</span>
+                    <span class="font-bold ml-2">{{ mining_log.chalan_no }}</span>
+                </div>
+                <div>
+                    <span class="text-gray-500">Date:</span>
+                    <span class="font-bold ml-2">{{ mining_log.date|date:"d-m-Y" }}</span>
+                </div>
+                <div>
+                    <span class="text-gray-500">Type:</span>
+                    <span class="font-bold ml-2">{{ mining_log.get_type_display }}</span>
+                </div>
+                <div>
+                    <span class="text-gray-500">Customer:</span>
+                    <span class="font-bold ml-2">{{ mining_log.customer_name }}</span>
+                </div>
+                <div>
+                    <span class="text-gray-500">Truck:</span>
+                    <span class="font-bold ml-2">{{ mining_log.truck.plate_number }}</span>
+                </div>
+                <div>
+                    <span class="text-gray-500">Net Weight:</span>
+                    <span class="font-bold ml-2">{{ mining_log.net|floatformat:2 }} T</span>
+                </div>
+            </div>
+        </div>
+        
+        <form method="post" class="flex space-x-4">
+            {% csrf_token %}
+            <button type="submit" 
+                class="flex-1 bg-red-600 text-white py-3 px-6 rounded-xl font-bold hover:bg-red-700 transition-colors">
+                Yes, Delete Entry
+            </button>
+            <a href="{% url 'operations:mining-log-detail' mining_log.id %}" 
+                class="flex-1 bg-gray-200 text-gray-700 py-3 px-6 rounded-xl font-bold hover:bg-gray-300 text-center transition-colors">
+                Cancel
+            </a>
+        </form>
+    </div>
+</div>
+{% endblock %}

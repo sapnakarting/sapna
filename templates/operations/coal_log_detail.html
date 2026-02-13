@@ -1,0 +1,177 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="max-w-5xl mx-auto space-y-6">
+    <!-- Header -->
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
+            <h1 class="text-3xl font-black text-slate-900">Coal Entry Details</h1>
+            <p class="text-gray-600">Pass: {{ coal_log.pass_no }} | {{ coal_log.date|date:"d-m-Y" }}</p>
+        </div>
+        <div class="flex space-x-2">
+            <a href="{% url 'operations:coal-log-update' coal_log.id %}" 
+                class="bg-green-600 text-white px-4 py-2 rounded-xl font-bold hover:bg-green-700 transition-colors">
+                Edit
+            </a>
+            <a href="{% url 'operations:coal-log-list' %}" 
+                class="bg-gray-200 text-gray-700 px-4 py-2 rounded-xl font-bold hover:bg-gray-300 transition-colors">
+                Back
+            </a>
+        </div>
+    </div>
+    
+    <!-- Truck & Trip Info -->
+    <div class="bg-white p-6 rounded-2xl shadow-lg space-y-4">
+        <h2 class="text-xl font-bold text-slate-900 border-b pb-2">Truck & Trip Information</h2>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div>
+                <label class="block text-sm font-semibold text-gray-500">Truck</label>
+                <p class="text-lg font-bold">{{ coal_log.truck.plate_number }}</p>
+            </div>
+            <div>
+                <label class="block text-sm font-semibold text-gray-500">Date</label>
+                <p class="text-lg font-bold">{{ coal_log.date|date:"d-m-Y" }}</p>
+            </div>
+            <div>
+                <label class="block text-sm font-semibold text-gray-500">Pass Number</label>
+                <p class="text-lg font-bold">{{ coal_log.pass_no }}</p>
+            </div>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+                <label class="block text-sm font-semibold text-gray-500">Origin Site</label>
+                <p class="text-lg font-bold">{{ coal_log.origin_site }}</p>
+            </div>
+            <div>
+                <label class="block text-sm font-semibold text-gray-500">Destination Site</label>
+                <p class="text-lg font-bold">{{ coal_log.destination_site }}</p>
+            </div>
+        </div>
+        {% if coal_log.trip_remarks %}
+        <div>
+            <label class="block text-sm font-semibold text-gray-500">Trip Remarks</label>
+            <p class="text-gray-700">{{ coal_log.trip_remarks }}</p>
+        </div>
+        {% endif %}
+    </div>
+    
+    <!-- Weight Information -->
+    <div class="bg-white p-6 rounded-2xl shadow-lg space-y-4">
+        <h2 class="text-xl font-bold text-slate-900 border-b pb-2">Weight Information</h2>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div class="p-4 bg-gray-50 rounded-xl">
+                <label class="block text-sm font-semibold text-gray-500">Gross Weight</label>
+                <p class="text-2xl font-black text-slate-900">{{ coal_log.gross_weight|floatformat:2 }} <span class="text-sm font-normal">T</span></p>
+            </div>
+            <div class="p-4 bg-gray-50 rounded-xl">
+                <label class="block text-sm font-semibold text-gray-500">Tare Weight</label>
+                <p class="text-2xl font-black text-slate-900">{{ coal_log.tare_weight|floatformat:2 }} <span class="text-sm font-normal">T</span></p>
+            </div>
+            <div class="p-4 bg-emerald-50 rounded-xl border-2 border-emerald-500">
+                <label class="block text-sm font-semibold text-emerald-600">Net Weight</label>
+                <p class="text-2xl font-black text-emerald-700">{{ coal_log.net_weight|floatformat:2 }} <span class="text-sm font-normal">T</span></p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Diesel Information -->
+    <div class="bg-white p-6 rounded-2xl shadow-lg space-y-4">
+        <h2 class="text-xl font-bold text-slate-900 border-b pb-2">Diesel Information</h2>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div class="p-4 bg-blue-50 rounded-xl">
+                <label class="block text-sm font-semibold text-blue-600">Diesel Liters</label>
+                <p class="text-2xl font-black text-blue-700">{{ coal_log.diesel_liters|floatformat:2 }} <span class="text-sm font-normal">L</span></p>
+            </div>
+            <div class="p-4 bg-blue-50 rounded-xl">
+                <label class="block text-sm font-semibold text-blue-600">Rate per Liter</label>
+                <p class="text-2xl font-black text-blue-700">₹{{ coal_log.diesel_rate|floatformat:2 }}</p>
+            </div>
+            <div class="p-4 bg-purple-50 rounded-xl border-2 border-purple-500">
+                <label class="block text-sm font-semibold text-purple-600">Total Diesel Cost</label>
+                <p class="text-2xl font-black text-purple-700">₹{{ coal_log.diesel_cost|floatformat:2 }}</p>
+            </div>
+        </div>
+        {% if coal_log.diesel_remarks %}
+        <div>
+            <label class="block text-sm font-semibold text-gray-500">Diesel Remarks</label>
+            <p class="text-gray-700">{{ coal_log.diesel_remarks }}</p>
+        </div>
+        {% endif %}
+    </div>
+    
+    <!-- Adjustments -->
+    {% if coal_log.diesel_adjustment or coal_log.air_adjustment or coal_log.trip_adjustment %}
+    <div class="bg-white p-6 rounded-2xl shadow-lg space-y-4">
+        <h2 class="text-xl font-bold text-slate-900 border-b pb-2">Adjustments</h2>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {% if coal_log.diesel_adjustment %}
+            <div class="p-4 bg-amber-50 rounded-xl">
+                <label class="block text-sm font-semibold text-amber-600">Diesel Adjustment</label>
+                <p class="text-2xl font-black text-amber-700">₹{{ coal_log.diesel_adjustment|floatformat:2 }}</p>
+                {% if coal_log.diesel_remarks %}
+                <p class="text-sm text-amber-600 mt-1">{{ coal_log.diesel_remarks }}</p>
+                {% endif %}
+            </div>
+            {% endif %}
+            {% if coal_log.air_adjustment %}
+            <div class="p-4 bg-cyan-50 rounded-xl">
+                <label class="block text-sm font-semibold text-cyan-600">Air Adjustment</label>
+                <p class="text-2xl font-black text-cyan-700">₹{{ coal_log.air_adjustment|floatformat:2 }}</p>
+                {% if coal_log.air_remarks %}
+                <p class="text-sm text-cyan-600 mt-1">{{ coal_log.air_remarks }}</p>
+                {% endif %}
+            </div>
+            {% endif %}
+            {% if coal_log.trip_adjustment %}
+            <div class="p-4 bg-rose-50 rounded-xl">
+                <label class="block text-sm font-semibold text-rose-600">Trip Adjustment</label>
+                <p class="text-2xl font-black text-rose-700">₹{{ coal_log.trip_adjustment|floatformat:2 }}</p>
+            </div>
+            {% endif %}
+        </div>
+        <div class="p-4 bg-gray-100 rounded-xl">
+            <div class="flex justify-between items-center">
+                <span class="font-bold text-gray-700">Total Adjustments:</span>
+                <span class="text-2xl font-black text-slate-900">₹{{ total_adjustments|floatformat:2 }}</span>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- Documents -->
+    {% if documents %}
+    <div class="bg-white p-6 rounded-2xl shadow-lg space-y-4">
+        <h2 class="text-xl font-bold text-slate-900 border-b pb-2">Documents</h2>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {% for doc in documents %}
+            <div class="p-4 border border-gray-200 rounded-xl hover:border-blue-500 transition-colors">
+                <div class="flex items-center space-x-3">
+                    <span class="text-2xl">📄</span>
+                    <div>
+                        <p class="font-semibold text-sm truncate">{{ doc.name }}</p>
+                        <p class="text-xs text-gray-500">{{ doc.uploaded_at|slice:":10" }}</p>
+                    </div>
+                </div>
+                <a href="{{ doc.path }}" target="_blank" class="mt-2 block text-center text-sm text-blue-600 hover:underline">
+                    View Document
+                </a>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- Created Info -->
+    <div class="bg-gray-50 p-4 rounded-xl text-sm text-gray-500">
+        <p>Created by: {{ coal_log.created_by.username }} on {{ coal_log.created_at|date:"d-m-Y H:i" }}</p>
+        <p>Last updated: {{ coal_log.updated_at|date:"d-m-Y H:i" }}</p>
+    </div>
+    
+    <!-- Delete Button -->
+    <div class="flex justify-end">
+        <a href="{% url 'operations:coal-log-delete' coal_log.id %}" 
+            class="bg-red-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-red-700 transition-colors">
+            Delete Entry
+        </a>
+    </div>
+</div>
+{% endblock %}
