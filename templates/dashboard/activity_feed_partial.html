@@ -1,0 +1,28 @@
+{% if activities %}
+    {% for activity in activities %}
+    <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div class="flex items-start gap-3">
+            <span class="flex h-9 w-9 items-center justify-center rounded-full {% if activity.action_type == 'fuel' %}bg-amber-50 text-amber-600{% elif activity.action_type == 'tire' %}bg-purple-50 text-purple-600{% elif activity.action_type == 'trip' %}bg-blue-50 text-blue-600{% else %}bg-slate-100 text-slate-600{% endif %}">
+                {{ activity.icon|default:"📝" }}
+            </span>
+            <div class="flex-1">
+                <div class="flex flex-col justify-between gap-1 sm:flex-row sm:items-center">
+                    <p class="text-sm font-semibold text-slate-900">{{ activity.actor|default:"Operations Team" }}</p>
+                    <p class="text-xs text-slate-400">{{ activity.timestamp|default:"2h ago" }}</p>
+                </div>
+                <p class="mt-1 text-sm text-slate-600">
+                    <span class="font-semibold {% if activity.action_type == 'alert' %}text-rose-600{% elif activity.action_type == 'fuel' %}text-amber-600{% elif activity.action_type == 'tire' %}text-purple-600{% elif activity.action_type == 'trip' %}text-blue-600{% else %}text-slate-700{% endif %}">
+                        {{ activity.action|default:"Logged fuel entry" }}
+                    </span>
+                    <span class="text-slate-500">{{ activity.object_info|default:"Truck RJ14 2201" }}</span>
+                </p>
+                <p class="mt-2 text-xs text-slate-400">{{ activity.details|default:"35,200 L added at Sapna Depot" }}</p>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+{% else %}
+    <div class="rounded-xl border border-dashed border-slate-200 bg-white p-6 text-center text-sm text-slate-500">
+        No recent activity logged yet.
+    </div>
+{% endif %}
