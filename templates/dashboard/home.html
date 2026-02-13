@@ -118,8 +118,33 @@
         </div>
     </section>
 
-    <section class="grid gap-4 lg:grid-cols-3">
-        {% include 'dashboard/charts_placeholder.html' %}
+    <section class="space-y-4" data-chart-endpoint="{% url 'dashboard:chart-data' %}">
+        <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+                <h2 class="text-lg font-semibold text-slate-900">Interactive Insights</h2>
+                <p class="text-sm text-slate-500">Filter trends by date range and stay updated in real time.</p>
+            </div>
+            <div class="flex flex-wrap items-end gap-3 rounded-2xl bg-white p-4 shadow-sm">
+                <div class="flex flex-col text-xs font-semibold text-slate-500">
+                    <label for="chart-start-date">Start date</label>
+                    <input id="chart-start-date" type="date" class="mt-1 rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-700" />
+                </div>
+                <div class="flex flex-col text-xs font-semibold text-slate-500">
+                    <label for="chart-end-date">End date</label>
+                    <input id="chart-end-date" type="date" class="mt-1 rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-700" />
+                </div>
+                <button id="chart-apply" type="button" class="rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800">
+                    Apply
+                </button>
+                <button id="chart-reset" type="button" class="rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600 transition hover:border-slate-300">
+                    Last 30 days
+                </button>
+                <span id="chart-last-updated" class="text-xs text-slate-400">Updated just now</span>
+            </div>
+        </div>
+        <div class="grid gap-4 lg:grid-cols-3" data-chart-refresh-interval="60000">
+            {% include 'dashboard/charts_placeholder.html' %}
+        </div>
     </section>
 
     <section class="rounded-2xl bg-white p-6 shadow-sm">

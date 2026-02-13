@@ -1,8 +1,25 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-    const chartDefaults = {
-        borderColor: '#0f172a',
-        backgroundColor: 'rgba(59, 130, 246, 0.2)'
+    const chartInstances = {};
+    const chartTheme = {
+        fuel: {
+            borderColor: '#0f172a',
+            backgroundColor: 'rgba(59, 130, 246, 0.2)'
+        },
+        tire: {
+            borderColor: '#7c3aed',
+            backgroundColor: 'rgba(124, 58, 237, 0.3)'
+        },
+        operations: ['#f59e0b', '#2563eb']
+    };
+
+    const formatDateInputValue = (date) => date.toLocaleDateString('en-CA');
+
+    const normalizeChartSeries = (labels, data) => {
+        if (!labels.length) {
+            return { labels: ['No data'], data: [0] };
+        }
+        return { labels, data };
     };
 
     const initializeCharts = () => {
@@ -10,52 +27,75 @@
             return;
         }
 
-        const charts = [
-            {
-                id: 'fuelEfficiencyChart',
+        const fuelCanvas = document.getElementById('fuelEfficiencyChart');
+        if (fuelCanvas && !chartInstances.fuelEfficiency) {
+            chartInstances.fuelEfficiency = new Chart(fuelCanvas.getContext('2d'), {
                 type: 'line',
-                data: [3.1, 3.3, 3.2, 3.5, 3.4, 3.6, 3.5],
-                labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4', 'Week 5', 'Week 6', 'Week 7']
-            },
-            {
-                id: 'tireCostChart',
-                type: 'bar',
-                data: [11.2, 12.8, 10.9, 13.4, 12.1],
-                labels: ['RJ14 2201', 'RJ14 2209', 'RJ14 2215', 'RJ14 2233', 'RJ14 2240']
-            },
-            {
-                id: 'operationsSummaryChart',
-                type: 'doughnut',
-                data: [248, 144],
-                labels: ['Coal', 'Mining'],
-                backgroundColor: ['#f59e0b', '#2563eb']
-            }
-        ];
-
-        charts.forEach((config) => {
-            const canvas = document.getElementById(config.id);
-            if (!canvas) {
-                return;
-            }
-
-            if (canvas.dataset.chartInitialized) {
-                return;
-            }
-
-            canvas.dataset.chartInitialized = 'true';
-            const ctx = canvas.getContext('2d');
-            new Chart(ctx, {
-                type: config.type,
                 data: {
-                    labels: config.labels,
+                    labels: [],
                     datasets: [
                         {
-                            label: canvas.dataset.chartLabel || 'Metric',
-                            data: config.data,
+                            label: fuelCanvas.dataset.chartLabel || 'Fuel Efficiency',
+                            data: [],
                             borderWidth: 2,
-                            borderColor: chartDefaults.borderColor,
-                            backgroundColor: config.backgroundColor || chartDefaults.backgroundColor,
-                            fill: config.type === 'line'
+                            borderColor: chartTheme.fuel.borderColor,
+                            backgroundColor: chartTheme.fuel.backgroundColor,
+                            fill: true,
+                            tension: 0.3
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+
+        const tireCanvas = document.getElementById('tireCostChart');
+        if (tireCanvas && !chartInstances.tireCost) {
+            chartInstances.tireCost = new Chart(tireCanvas.getContext('2d'), {
+                type: 'bar',
+                data: {
+                    labels: [],
+                    datasets: [
+                        {
+                            label: tireCanvas.dataset.chartLabel || 'Tire Cost',
+                            data: [],
+                            borderWidth: 1,
+                            borderColor: chartTheme.tire.borderColor,
+                            backgroundColor: chartTheme.tire.backgroundColor
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+
+        const operationsCanvas = document.getElementById('operationsSummaryChart');
+        if (operationsCanvas && !chartInstances.operationsSummary) {
+            chartInstances.operationsSummary = new Chart(operationsCanvas.getContext('2d'), {
+                type: 'doughnut',
+                data: {
+                    labels: [],
+                    datasets: [
+                        {
+                            label: operationsCanvas.dataset.chartLabel || 'Operations',
+                            data: [],
+                            backgroundColor: chartTheme.operations
                         }
                     ]
                 },
@@ -64,12 +104,133 @@
                     maintainAspectRatio: false,
                     plugins: {
                         legend: {
-                            display: config.type === 'doughnut'
+                            display: true
                         }
                     }
                 }
             });
+        }
+    };
+
+    const updateCharts = (payload) => {
+        if (!payload) {
+            return;
+        }
+
+        if (chartInstances.fuelEfficiency && payload.fuel_efficiency) {
+            const normalized = normalizeChartSeries(payload.fuel_efficiency.labels || [], payload.fuel_efficiency.data || []);
+            chartInstances.fuelEfficiency.data.labels = normalized.labels;
+            chartInstances.fuelEfficiency.data.datasets[0].data = normalized.data;
+            chartInstances.fuelEfficiency.update();
+        }
+
+        if (chartInstances.tireCost && payload.tire_costs) {
+            const normalized = normalizeChartSeries(payload.tire_costs.labels || [], payload.tire_costs.data || []);
+            chartInstances.tireCost.data.labels = normalized.labels;
+            chartInstances.tireCost.data.datasets[0].data = normalized.data;
+            chartInstances.tireCost.update();
+        }
+
+        if (chartInstances.operationsSummary && payload.operations) {
+            const labels = payload.operations.labels || ['Coal', 'Mining'];
+            const data = payload.operations.data || [0, 0];
+            chartInstances.operationsSummary.data.labels = labels;
+            chartInstances.operationsSummary.data.datasets[0].data = data;
+            chartInstances.operationsSummary.update();
+        }
+
+        const lastUpdated = document.getElementById('chart-last-updated');
+        if (lastUpdated && payload.last_updated) {
+            const updatedAt = new Date(payload.last_updated);
+            lastUpdated.textContent = `Updated ${updatedAt.toLocaleString()}`;
+        }
+    };
+
+    const setDefaultChartDates = () => {
+        const startInput = document.getElementById('chart-start-date');
+        const endInput = document.getElementById('chart-end-date');
+        if (!startInput || !endInput) {
+            return;
+        }
+
+        const endDate = new Date();
+        const startDate = new Date();
+        startDate.setDate(endDate.getDate() - 30);
+
+        startInput.value = formatDateInputValue(startDate);
+        endInput.value = formatDateInputValue(endDate);
+    };
+
+    const fetchChartData = async () => {
+        const chartSection = document.querySelector('[data-chart-endpoint]');
+        if (!chartSection) {
+            return;
+        }
+
+        const endpoint = chartSection.dataset.chartEndpoint;
+        if (!endpoint) {
+            return;
+        }
+
+        const startInput = document.getElementById('chart-start-date');
+        const endInput = document.getElementById('chart-end-date');
+
+        const params = new URLSearchParams();
+        if (startInput?.value) {
+            params.append('start', startInput.value);
+        }
+        if (endInput?.value) {
+            params.append('end', endInput.value);
+        }
+
+        const response = await fetch(`${endpoint}?${params.toString()}`, {
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
         });
+
+        if (!response.ok) {
+            return;
+        }
+
+        const data = await response.json();
+        updateCharts(data);
+    };
+
+    const setupChartFilters = () => {
+        const startInput = document.getElementById('chart-start-date');
+        const endInput = document.getElementById('chart-end-date');
+        const applyButton = document.getElementById('chart-apply');
+        const resetButton = document.getElementById('chart-reset');
+
+        if (!startInput || !endInput) {
+            return;
+        }
+
+        if (!startInput.value || !endInput.value) {
+            setDefaultChartDates();
+        }
+
+        applyButton?.addEventListener('click', () => {
+            fetchChartData();
+        });
+
+        resetButton?.addEventListener('click', () => {
+            setDefaultChartDates();
+            fetchChartData();
+        });
+    };
+
+    const setupChartAutoRefresh = () => {
+        const refreshContainer = document.querySelector('[data-chart-refresh-interval]');
+        if (!refreshContainer) {
+            return;
+        }
+
+        const refreshInterval = Number(refreshContainer.dataset.chartRefreshInterval || 60000);
+        setInterval(() => {
+            fetchChartData();
+        }, refreshInterval);
     };
 
     const setupActivityRefresh = () => {
@@ -130,6 +291,9 @@
 
     document.addEventListener('DOMContentLoaded', () => {
         initializeCharts();
+        setupChartFilters();
+        fetchChartData();
+        setupChartAutoRefresh();
         setupActivityRefresh();
         setupMobileToggle();
         setupFormValidation();
