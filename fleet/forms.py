@@ -4,7 +4,7 @@ from django.contrib.auth.forms import UserCreationForm as DjangoUserCreationForm
 from django.contrib.auth.models import User
 from django.utils import timezone
 
-from .models import Truck, Driver, FuelLog, TireInventory
+from .models import Truck, Driver, FuelLog, TireInventory, Alert
 
 
 class LoginForm(forms.Form):
@@ -439,3 +439,27 @@ class TireSearchForm(forms.Form):
         ('purchase_cost', 'Cost'),
         ('created_at', 'Recently Added'),
     ], required=False, initial='serial_number')
+
+
+class AlertUpdateForm(forms.ModelForm):
+    class Meta:
+        model = Alert
+        fields = ['status', 'resolution_notes']
+        widgets = {
+            'status': forms.Select(attrs={
+                'class': 'w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-slate-500 focus:border-transparent'
+            }),
+            'resolution_notes': forms.Textarea(attrs={
+                'class': 'w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-slate-500 focus:border-transparent',
+                'rows': 4,
+                'placeholder': 'Enter resolution notes or dismissal reason...'
+            })
+        }
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Make resolution notes required only when changing to resolved/dismissed
+        if self.instance and self.instance.status in [Alert.AlertStatus.RESOLVED, Alert.AlertStatus.DISMISSED]:
+            self.fields['resolution_notes'].required = True
+        else:
+            self.fields['resolution_notes'].required = False

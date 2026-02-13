@@ -1,5 +1,6 @@
 from django.urls import path
 from . import views
+from . import views_alerts
 
 app_name = 'fleet'
 
@@ -50,4 +51,13 @@ urlpatterns = [
     path('tires/truck/<int:pk>/', views.TireTruckView.as_view(), name='tire-truck'),
     path('tires/search/', views.TireSearchView.as_view(), name='tire-search'),
     path('tires/<int:pk>/action/', views.TireActionView.as_view(), name='tire-action'),
+    
+    # Alert Management
+    path('alerts/', views_alerts.AlertListView.as_view(), name='alert-list'),
+    path('alerts/<int:pk>/', views_alerts.AlertDetailView.as_view(), name='alert-detail'),
+    path('alerts/<int:pk>/update/', views_alerts.AlertUpdateView.as_view(), name='alert-update'),
+    path('alerts/<int:pk>/resolve/', views_alerts.resolve_alert, name='alert-resolve'),
+    path('alerts/<int:pk>/dismiss/', views_alerts.dismiss_alert, name='alert-dismiss'),
+    path('alerts/bulk-resolve/', views_alerts.bulk_resolve_alerts, name='alert-bulk-resolve'),
+    path('alerts/stats/', views_alerts.get_alert_stats, name='alert-stats'),
 ]
