@@ -1,0 +1,109 @@
+{% extends 'base.html' %}
+
+{% block breadcrumbs %}
+{% include 'components/breadcrumbs.html' with breadcrumbs=breadcrumbs %}
+{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <div class="mb-6">
+        <h1 class="text-2xl font-bold text-slate-900">System Settings</h1>
+        <p class="text-slate-500">Configure system-wide preferences and benchmarks</p>
+    </div>
+
+    {% if settings %}
+    <div class="space-y-6">
+        <!-- Compliance Settings -->
+        <div class="rounded-xl bg-white p-6 shadow-sm">
+            <h2 class="text-lg font-semibold text-slate-900 mb-4">Compliance Settings</h2>
+            <div class="space-y-3">
+                <div class="flex justify-between items-center py-2 border-b border-slate-100">
+                    <div>
+                        <p class="font-medium text-slate-700">Compliance Alert Email</p>
+                        <p class="text-sm text-slate-500">Email address for compliance notifications</p>
+                    </div>
+                    <span class="text-amber-600 font-semibold">{{ settings.compliance_alert_email }}</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Fuel Efficiency Settings -->
+        <div class="rounded-xl bg-white p-6 shadow-sm">
+            <h2 class="text-lg font-semibold text-slate-900 mb-4">Fuel Efficiency Benchmarks</h2>
+            <div class="space-y-3">
+                <div class="flex justify-between items-center py-2 border-b border-slate-100">
+                    <div>
+                        <p class="font-medium text-slate-700">Global Fuel Efficiency Benchmark</p>
+                        <p class="text-sm text-slate-500">Target km per liter for entire fleet</p>
+                    </div>
+                    <span class="text-emerald-600 font-semibold">{{ settings.global_fuel_efficiency_benchmark }} km/L</span>
+                </div>
+                <div class="flex justify-between items-center py-2 border-b border-slate-100">
+                    <div>
+                        <p class="font-medium text-slate-700">Per Trip Diesel Benchmark</p>
+                        <p class="text-sm text-slate-500">Expected diesel consumption per trip</p>
+                    </div>
+                    <span class="text-slate-600 font-semibold">₹{{ settings.per_trip_diesel_benchmark }}</span>
+                </div>
+                <div class="flex justify-between items-center py-2 border-b border-slate-100">
+                    <div>
+                        <p class="font-medium text-slate-700">Per Tonnage Diesel Benchmark</p>
+                        <p class="text-sm text-slate-500">Expected diesel per ton of material</p>
+                    </div>
+                    <span class="text-slate-600 font-semibold">₹{{ settings.per_tonnage_diesel_benchmark }}</span>
+                </div>
+                <div class="flex justify-between items-center py-2">
+                    <div>
+                        <p class="font-medium text-slate-700">Check Frequency</p>
+                        <p class="text-sm text-slate-500">How often to check fuel efficiency</p>
+                    </div>
+                    <span class="text-slate-600 font-semibold">{{ settings.get_fuel_efficiency_check_frequency_display }}</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Fleet Efficiency Thresholds -->
+        <div class="rounded-xl bg-white p-6 shadow-sm">
+            <h2 class="text-lg font-semibold text-slate-900 mb-4">Fleet Efficiency Thresholds</h2>
+            <div class="space-y-3">
+                <div class="flex justify-between items-center py-2 border-b border-slate-100">
+                    <div>
+                        <p class="font-medium text-slate-700">Minimum Threshold</p>
+                        <p class="text-sm text-slate-500">Alert if efficiency falls below this value</p>
+                    </div>
+                    <span class="text-rose-600 font-semibold">{{ settings.fleet_efficiency_threshold_min }} km/L</span>
+                </div>
+                <div class="flex justify-between items-center py-2">
+                    <div>
+                        <p class="font-medium text-slate-700">Maximum Threshold</p>
+                        <p class="text-sm text-slate-500">Alert if efficiency exceeds this value</p>
+                    </div>
+                    <span class="text-emerald-600 font-semibold">{{ settings.fleet_efficiency_threshold_max }} km/L</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- System Information -->
+        <div class="rounded-xl bg-slate-50 p-6 border border-slate-200">
+            <h2 class="text-lg font-semibold text-slate-900 mb-4">System Information</h2>
+            <div class="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                    <p class="text-slate-500">Last Updated</p>
+                    <p class="font-semibold text-slate-700">{{ settings.updated_at|date:"F d, Y H:i" }}</p>
+                </div>
+                <div>
+                    <p class="text-slate-500">Created</p>
+                    <p class="font-semibold text-slate-700">{{ settings.created_at|date:"F d, Y H:i" }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="rounded-xl bg-white p-12 shadow-sm text-center">
+        <div class="text-6xl mb-4">⚙️</div>
+        <h3 class="text-xl font-semibold text-slate-900 mb-2">No Settings Configured</h3>
+        <p class="text-slate-500">System settings need to be initialized by an administrator.</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

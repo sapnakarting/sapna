@@ -1,0 +1,138 @@
+{% load static %}
+<nav class="flex items-center space-x-1">
+    {% if user.is_authenticated %}
+    <!-- Dashboard -->
+    <a href="{% url 'dashboard:index' %}"
+       class="nav-link px-3 py-2 rounded-lg text-white hover:text-amber-500 transition-colors font-semibold {% if request.resolver_match.namespace == 'dashboard' %}bg-slate-800 text-amber-500{% endif %}">
+        Dashboard
+    </a>
+
+    <!-- Fleet Management Dropdown -->
+    <div class="relative group">
+        <button class="nav-link px-3 py-2 rounded-lg text-white hover:text-amber-500 transition-colors font-semibold flex items-center gap-1 {% if request.resolver_match.namespace == 'fleet' %}bg-slate-800 text-amber-500{% endif %}">
+            Fleet
+            <svg class="w-4 h-4 transition-transform group-hover:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+            </svg>
+        </button>
+        <div class="absolute left-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-slate-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+            <div class="py-1">
+                <a href="{% url 'fleet:truck-list' %}"
+                   class="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 hover:text-amber-600 {% if request.resolver_match.url_name == 'truck-list' or request.resolver_match.url_name == 'truck-detail' %}bg-slate-50 text-amber-600 font-semibold{% endif %}">
+                    Trucks
+                </a>
+                <a href="{% url 'fleet:driver-list' %}"
+                   class="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 hover:text-amber-600 {% if request.resolver_match.url_name == 'driver-list' or request.resolver_match.url_name == 'driver-detail' %}bg-slate-50 text-amber-600 font-semibold{% endif %}">
+                    Drivers
+                </a>
+                <a href="{% url 'fleet:fuel-log-list' %}"
+                   class="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 hover:text-amber-600 {% if request.resolver_match.url_name == 'fuel-log-list' or request.resolver_match.url_name == 'fuel-log-detail' %}bg-slate-50 text-amber-600 font-semibold{% endif %}">
+                    Fuel Logs
+                </a>
+                <a href="{% url 'fleet:tire-list' %}"
+                   class="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 hover:text-amber-600 {% if request.resolver_match.url_name == 'tire-list' or request.resolver_match.url_name == 'tire-detail' %}bg-slate-50 text-amber-600 font-semibold{% endif %}">
+                    Tire Inventory
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Operations Dropdown -->
+    <div class="relative group">
+        <button class="nav-link px-3 py-2 rounded-lg text-white hover:text-amber-500 transition-colors font-semibold flex items-center gap-1 {% if request.resolver_match.namespace == 'operations' %}bg-slate-800 text-amber-500{% endif %}">
+            Operations
+            <svg class="w-4 h-4 transition-transform group-hover:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+            </svg>
+        </button>
+        <div class="absolute left-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-slate-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+            <div class="py-1">
+                <a href="{% url 'operations:coal-log-list' %}"
+                   class="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 hover:text-amber-600 {% if request.resolver_match.url_name == 'coal-log-list' or request.resolver_match.url_name == 'coal-log-detail' %}bg-slate-50 text-amber-600 font-semibold{% endif %}">
+                    Coal Logs
+                </a>
+                <a href="{% url 'operations:mining-log-list' %}"
+                   class="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 hover:text-amber-600 {% if request.resolver_match.url_name == 'mining-log-list' or request.resolver_match.url_name == 'mining-log-detail' %}bg-slate-50 text-amber-600 font-semibold{% endif %}">
+                    Mining Logs
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings (Admin Only) -->
+    {% if user.userprofile.is_admin %}
+    <a href="{% url 'settings_app:index' %}"
+       class="nav-link px-3 py-2 rounded-lg text-white hover:text-amber-500 transition-colors font-semibold {% if request.resolver_match.namespace == 'settings_app' %}bg-slate-800 text-amber-500{% endif %}">
+        Settings
+    </a>
+    {% endif %}
+
+    <!-- User Management (Admin Only) -->
+    {% if user.userprofile.is_admin %}
+    <a href="{% url 'fleet:user-list' %}"
+       class="nav-link px-3 py-2 rounded-lg text-white hover:text-amber-500 transition-colors font-semibold {% if request.resolver_match.url_name == 'user-list' or request.resolver_match.url_name == 'user-create' or request.resolver_match.url_name == 'user-update' %}bg-slate-800 text-amber-500{% endif %}">
+        Users
+    </a>
+    {% endif %}
+
+    <span class="text-gray-600 mx-2">|</span>
+
+    <!-- User Info -->
+    <div class="flex items-center gap-3">
+        <div class="flex items-center gap-2 text-sm">
+            <span class="w-8 h-8 rounded-full bg-amber-500 flex items-center justify-center text-white font-bold">
+                {{ user.username|first|upper }}
+            </span>
+            <span class="text-gray-300">{{ user.username }}</span>
+        </div>
+
+        <!-- User Dropdown -->
+        <div class="relative group">
+            <button class="flex items-center gap-1 text-gray-300 hover:text-white transition-colors">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                </svg>
+            </button>
+            <div class="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-slate-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                <div class="py-2 px-4 border-b border-slate-100">
+                    <p class="text-sm font-semibold text-slate-900">{{ user.username }}</p>
+                    <p class="text-xs text-slate-500">
+                        {% if user.userprofile.is_admin %}Admin{% else %}Fuel Agent{% endif %}
+                    </p>
+                </div>
+                <div class="py-1">
+                    <a href="{% url 'settings_app:index' %}" class="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">
+                        Profile Settings
+                    </a>
+                    <form method="post" action="{% url 'fleet:logout' %}" class="block">
+                        {% csrf_token %}
+                        <button type="submit" class="w-full text-left px-4 py-2 text-sm text-rose-600 hover:bg-rose-50">
+                            Logout
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <!-- Login Button -->
+    <a href="{% url 'fleet:login' %}" class="bg-amber-500 hover:bg-amber-600 text-white px-6 py-2 rounded-lg font-bold transition-colors">
+        Login
+    </a>
+    {% endif %}
+</nav>
+
+<script>
+// Close dropdowns when clicking outside
+document.addEventListener('click', function(event) {
+    const dropdowns = document.querySelectorAll('.group');
+    dropdowns.forEach(dropdown => {
+        const button = dropdown.querySelector('button');
+        const menu = dropdown.querySelector('.absolute');
+        if (!dropdown.contains(event.target)) {
+            // Optional: Add logic to close dropdowns on outside click
+            // Currently using CSS hover for simplicity
+        }
+    });
+});
+</script>

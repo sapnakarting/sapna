@@ -4,7 +4,7 @@ from django.contrib.auth.models import User
 from django.contrib.auth.views import LogoutView as DjangoLogoutView
 from django.contrib import messages
 from django.shortcuts import render, redirect, get_object_or_404
-from django.urls import reverse_lazy
+from django.urls import reverse_lazy, reverse
 from django.utils import timezone
 from django.views import View
 from django.views.generic import ListView, CreateView, UpdateView, DeleteView, DetailView
@@ -74,6 +74,13 @@ class UserListView(ListView):
         if role_filter:
             queryset = queryset.filter(userprofile__role=role_filter)
         return queryset
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['breadcrumbs'] = [
+            {'name': 'Users', 'url': None}
+        ]
+        return context
 
 
 class UserCreateView(CreateView):
@@ -180,6 +187,10 @@ class TruckListView(LoginRequiredMixin, ListView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['search_form'] = TruckSearchForm(self.request.GET)
+        context['breadcrumbs'] = [
+            {'name': 'Fleet', 'url': None},
+            {'name': 'Trucks', 'url': None}
+        ]
         return context
 
 
@@ -200,6 +211,11 @@ class TruckDetailView(LoginRequiredMixin, DetailView):
         context['current_tires'] = TireInventory.objects.filter(
             truck=truck, status='MOUNTED'
         )
+        context['breadcrumbs'] = [
+            {'name': 'Fleet', 'url': None},
+            {'name': 'Trucks', 'url': reverse('fleet:truck-list')},
+            {'name': truck.plate_number, 'url': None}
+        ]
         return context
 
 
@@ -304,6 +320,14 @@ class DriverListView(LoginRequiredMixin, ListView):
             )
         return queryset
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['breadcrumbs'] = [
+            {'name': 'Fleet', 'url': None},
+            {'name': 'Drivers', 'url': None}
+        ]
+        return context
+
 
 class DriverDetailView(LoginRequiredMixin, DetailView):
     model = Driver
@@ -317,6 +341,11 @@ class DriverDetailView(LoginRequiredMixin, DetailView):
         context['recent_fuel_logs'] = FuelLog.objects.filter(
             driver=driver
         ).order_by('-created_at')[:5]
+        context['breadcrumbs'] = [
+            {'name': 'Fleet', 'url': None},
+            {'name': 'Drivers', 'url': reverse('fleet:driver-list')},
+            {'name': driver.name, 'url': None}
+        ]
         return context
 
 
@@ -390,6 +419,10 @@ class FuelLogListView(LoginRequiredMixin, ListView):
         context['truck_filter'] = self.request.GET.get('truck')
         context['entry_type_filter'] = self.request.GET.get('entry_type')
         context['pending_sync_count'] = FuelLog.objects.filter(synced=False).count()
+        context['breadcrumbs'] = [
+            {'name': 'Fleet', 'url': None},
+            {'name': 'Fuel Logs', 'url': None}
+        ]
         return context
 
 
@@ -421,6 +454,16 @@ class FuelLogDetailView(LoginRequiredMixin, DetailView):
     template_name = 'fleet/fuel_log_detail.html'
     context_object_name = 'fuel_log'
     pk_url_kwarg = 'pk'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        fuel_log = self.object
+        context['breadcrumbs'] = [
+            {'name': 'Fleet', 'url': None},
+            {'name': 'Fuel Logs', 'url': reverse('fleet:fuel-log-list')},
+            {'name': f'Entry {fuel_log.id}', 'url': None}
+        ]
+        return context
 
 
 class FuelLogUpdateView(LoginRequiredMixin, UpdateView):
@@ -539,30 +582,34 @@ class TireInventoryListView(LoginRequiredMixin, ListView):
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        
+
         # Calculate quick stats
         context['total_tires'] = TireInventory.objects.count()
         context['mounted_count'] = TireInventory.objects.filter(status='MOUNTED').count()
         context['spare_count'] = TireInventory.objects.filter(status='SPARE').count()
         context['repair_count'] = TireInventory.objects.filter(status='REPAIR').count()
         context['scrapped_count'] = TireInventory.objects.filter(status='SCRAPPED').count()
-        
+
         # Calculate average cost per km
         total_cost = TireInventory.objects.aggregate(
             total=Sum('purchase_cost') + Sum('mounting_cost') + Sum('repair_costs')
         )['total'] or 0
-        
+
         total_mileage = 0
         for tire in TireInventory.objects.all():
             total_mileage += tire.calculate_current_mileage()
-        
+
         if total_mileage > 0:
             context['avg_cost_per_km'] = total_cost / total_mileage
         else:
             context['avg_cost_per_km'] = 0
-        
+
         context['search_form'] = TireSearchForm(self.request.GET)
-        
+        context['breadcrumbs'] = [
+            {'name': 'Fleet', 'url': None},
+            {'name': 'Tire Inventory', 'url': None}
+        ]
+
         return context
 
 
@@ -575,12 +622,12 @@ class TireInventoryDetailView(LoginRequiredMixin, DetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         tire = self.object
-        
+
         # Calculate metrics
         context['total_cost'] = tire.calculate_total_cost()
         context['cost_per_km'] = tire.calculate_cost_per_km()
         context['current_mileage'] = tire.calculate_current_mileage()
-        
+
         # Get truck information if mounted
         if tire.truck:
             context['truck_info'] = {
@@ -589,10 +636,16 @@ class TireInventoryDetailView(LoginRequiredMixin, DetailView):
                 'wheel_config': tire.truck.wheel_config,
                 'current_odometer': tire.truck.current_odometer
             }
-        
+
         # Sort history chronologically
         context['history'] = sorted(tire.history, key=lambda x: x.get('date', ''))
-        
+
+        context['breadcrumbs'] = [
+            {'name': 'Fleet', 'url': None},
+            {'name': 'Tire Inventory', 'url': reverse('fleet:tire-list')},
+            {'name': tire.serial_number, 'url': None}
+        ]
+
         return context
 
 

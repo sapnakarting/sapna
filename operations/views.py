@@ -9,7 +9,7 @@ from django.core.files.storage import default_storage
 from django.db.models import Sum
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
-from django.urls import reverse_lazy
+from django.urls import reverse_lazy, reverse
 from django.utils import timezone
 from django.views import View
 from django.views.generic import (
@@ -63,14 +63,19 @@ class CoalLogListView(LoginRequiredMixin, ListView):
         context['search_form'] = CoalLogSearchForm(self.request.GET)
         context['date_from'] = self.request.GET.get('date_from')
         context['date_to'] = self.request.GET.get('date_to')
-        
+
         # Calculate summary stats
         queryset = self.get_queryset()
         context['total_trips'] = queryset.count()
         context['total_net_weight'] = queryset.aggregate(Sum('net_weight'))['net_weight__sum'] or 0
         context['total_diesel_liters'] = queryset.aggregate(Sum('diesel_liters'))['diesel_liters__sum'] or 0
         context['total_diesel_cost'] = queryset.aggregate(Sum('diesel_cost'))['diesel_cost__sum'] or 0
-        
+
+        context['breadcrumbs'] = [
+            {'name': 'Operations', 'url': None},
+            {'name': 'Coal Logs', 'url': None}
+        ]
+
         return context
 
 
@@ -83,11 +88,17 @@ class CoalLogDetailView(LoginRequiredMixin, DetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         coal_log = self.object
-        
+
         # Calculate additional metrics
         context['total_adjustments'] = coal_log.calculate_total_adjustments()
         context['documents'] = coal_log.documents or []
-        
+
+        context['breadcrumbs'] = [
+            {'name': 'Operations', 'url': None},
+            {'name': 'Coal Logs', 'url': reverse('operations:coal-log-list')},
+            {'name': f'Pass {coal_log.pass_no}', 'url': None}
+        ]
+
         return context
 
 
@@ -255,14 +266,19 @@ class MiningLogListView(LoginRequiredMixin, ListView):
         context['search_form'] = MiningLogSearchForm(self.request.GET)
         context['date_from'] = self.request.GET.get('date_from')
         context['date_to'] = self.request.GET.get('date_to')
-        
+
         # Calculate summary stats
         queryset = self.get_queryset()
         context['total_entries'] = queryset.count()
         context['total_tonnage'] = queryset.aggregate(Sum('net'))['net__sum'] or 0
         context['dispatch_count'] = queryset.filter(type='DISPATCH').count()
         context['purchase_count'] = queryset.filter(type='PURCHASE').count()
-        
+
+        context['breadcrumbs'] = [
+            {'name': 'Operations', 'url': None},
+            {'name': 'Mining Logs', 'url': None}
+        ]
+
         return context
 
 
@@ -275,10 +291,16 @@ class MiningLogDetailView(LoginRequiredMixin, DetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         mining_log = self.object
-        
+
         context['documents'] = mining_log.documents or []
         context['has_chalan_document'] = bool(mining_log.chalan_document)
-        
+
+        context['breadcrumbs'] = [
+            {'name': 'Operations', 'url': None},
+            {'name': 'Mining Logs', 'url': reverse('operations:mining-log-list')},
+            {'name': f'Chalan {mining_log.chalan_no}', 'url': None}
+        ]
+
         return context
 
 
