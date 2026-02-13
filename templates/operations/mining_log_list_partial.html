@@ -1,0 +1,66 @@
+<table class="w-full">
+    <thead class="bg-slate-900 text-white">
+        <tr>
+            <th class="px-4 py-3 text-left font-bold">Date & Time</th>
+            <th class="px-4 py-3 text-left font-bold">Chalan No</th>
+            <th class="px-4 py-3 text-left font-bold">Type</th>
+            <th class="px-4 py-3 text-left font-bold">Customer</th>
+            <th class="px-4 py-3 text-left font-bold">Truck</th>
+            <th class="px-4 py-3 text-left font-bold">Net Weight</th>
+            <th class="px-4 py-3 text-left font-bold">Material</th>
+            <th class="px-4 py-3 text-left font-bold">Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for log in mining_logs %}
+        <tr class="border-b hover:bg-gray-50">
+            <td class="px-4 py-3">
+                <div class="font-bold">{{ log.date|date:"d-m-Y" }}</div>
+                <div class="text-sm text-gray-500">{{ log.time|time:"H:i" }}</div>
+            </td>
+            <td class="px-4 py-3 font-semibold">{{ log.chalan_no }}</td>
+            <td class="px-4 py-3">
+                <span class="px-3 py-1 rounded-full text-sm font-bold
+                    {% if log.type == 'DISPATCH' %}bg-amber-100 text-amber-800
+                    {% else %}bg-purple-100 text-purple-800{% endif %}">
+                    {{ log.get_type_display }}
+                </span>
+            </td>
+            <td class="px-4 py-3">{{ log.customer_name }}</td>
+            <td class="px-4 py-3">
+                <div class="font-bold">{{ log.truck.plate_number }}</div>
+                <span class="text-xs px-2 py-1 rounded-full bg-gray-100 text-gray-600">{{ log.get_mining_type_display }}</span>
+            </td>
+            <td class="px-4 py-3">
+                <span class="font-bold text-emerald-600">{{ log.net|floatformat:2 }} T</span>
+            </td>
+            <td class="px-4 py-3 text-sm">{{ log.material }}</td>
+            <td class="px-4 py-3 space-x-2">
+                <a href="{% url 'operations:mining-log-detail' log.id %}" class="text-blue-600 hover:underline font-semibold">View</a>
+                <a href="{% url 'operations:mining-log-update' log.id %}" class="text-green-600 hover:underline font-semibold">Edit</a>
+            </td>
+        </tr>
+        {% empty %}
+        <tr>
+            <td colspan="8" class="px-6 py-8 text-center text-gray-500">
+                <div class="text-4xl mb-2">⛏️</div>
+                <p>No mining logs found. Add your first mining entry!</p>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+{% if page_obj.has_other_pages %}
+<div class="px-6 py-4 bg-gray-50 border-t flex justify-center">
+    <div class="flex space-x-2">
+        {% if page_obj.has_previous %}
+        <a href="?page={{ page_obj.previous_page_number }}" class="px-3 py-1 bg-white border rounded-lg hover:bg-gray-100">Previous</a>
+        {% endif %}
+        <span class="px-3 py-1 bg-slate-900 text-white rounded-lg">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+        {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}" class="px-3 py-1 bg-white border rounded-lg hover:bg-gray-100">Next</a>
+        {% endif %}
+    </div>
+</div>
+{% endif %}

@@ -21,13 +21,23 @@
                     <span class="text-white">SAPNA</span>
                     <span class="text-amber-500">CARTING</span>
                 </a>
-                <nav>
+                <nav class="flex items-center space-x-6">
                     {% if user.is_authenticated %}
-                    <div class="flex items-center space-x-4">
-                        <span class="text-gray-300">Welcome, {{ user.username }}</span>
+                    <div class="flex items-center space-x-6">
+                        <!-- Main Navigation -->
+                        <a href="{% url 'dashboard:index' %}" class="text-white hover:text-amber-500 transition-colors font-semibold">Dashboard</a>
+                        <a href="{% url 'truck-list' %}" class="text-white hover:text-amber-500 transition-colors font-semibold">Fleet</a>
+                        <a href="{% url 'fuel-log-list' %}" class="text-white hover:text-amber-500 transition-colors font-semibold">Fuel</a>
+                        <a href="{% url 'operations:coal-log-list' %}" class="text-white hover:text-amber-500 transition-colors font-semibold">Coal</a>
+                        <a href="{% url 'operations:mining-log-list' %}" class="text-white hover:text-amber-500 transition-colors font-semibold">Mining</a>
+                        
                         {% if user.userprofile.is_admin %}
                         <a href="{% url 'fleet:user-list' %}" class="text-white hover:text-amber-500 transition-colors font-semibold">Users</a>
                         {% endif %}
+                        
+                        <span class="text-gray-400">|</span>
+                        <span class="text-gray-300">Welcome, {{ user.username }}</span>
+                        
                         <form method="post" action="{% url 'logout' %}" class="inline">
                             {% csrf_token %}
                             <button type="submit" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-semibold transition-colors">
