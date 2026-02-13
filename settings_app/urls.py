@@ -4,5 +4,5 @@ from . import views
 app_name = 'settings_app'
 
 urlpatterns = [
-    # Settings URLs will be added here
+    path('', views.SettingsView.as_view(), name='index'),
 ]

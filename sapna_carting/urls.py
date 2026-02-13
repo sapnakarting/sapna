@@ -10,6 +10,7 @@ urlpatterns = [
     path('fleet/', include('fleet.urls')),
     path('operations/', include('operations.urls')),
     path('dashboard/', include('dashboard.urls')),
+    path('settings/', include('settings_app.urls')),
 ]
 
 if settings.DEBUG:
