@@ -1,16 +1,14 @@
 from django.views.generic import TemplateView
-from django.shortcuts import render
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db.models import Sum
 from django.utils import timezone
+from django.utils.dateparse import parse_date
 from datetime import timedelta
 from django.http import JsonResponse
 
 from fleet.models import Truck, Driver, FuelLog, TireInventory
 from operations.models import CoalLog, MiningLog
 from dashboard.models import ActivityLog, ComplianceAlert
-from dashboard.utils.metrics import calculate_fuel_efficiency, calculate_tire_metrics
-from .utils.permissions import is_admin_required
 
 
 class DashboardView(LoginRequiredMixin, TemplateView):
@@ -81,6 +79,7 @@ class DashboardView(LoginRequiredMixin, TemplateView):
 
             # Activity
             'recent_activities': recent_activities,
+            'last_updated': timezone.now(),
         })
 
         return context
@@ -169,6 +168,102 @@ class MetricsView(LoginRequiredMixin, TemplateView):
         }
 
         return JsonResponse(metrics)
+
+
+class ChartDataView(LoginRequiredMixin, TemplateView):
+    template_name = None
+
+    def get(self, request, *args, **kwargs):
+        start_date, end_date = self._get_date_range(request)
+
+        fuel_payload = self._build_fuel_efficiency(start_date, end_date)
+        tire_payload = self._build_tire_costs(start_date, end_date)
+        operations_payload = self._build_operations_summary(start_date, end_date)
+
+        return JsonResponse({
+            'fuel_efficiency': fuel_payload,
+            'tire_costs': tire_payload,
+            'operations': operations_payload,
+            'range': {
+                'start': start_date.isoformat(),
+                'end': end_date.isoformat(),
+            },
+            'last_updated': timezone.now().isoformat(),
+        })
+
+    def _get_date_range(self, request):
+        start_value = parse_date(request.GET.get('start') or '')
+        end_value = parse_date(request.GET.get('end') or '')
+        today = timezone.now().date()
+
+        end_date = end_value or today
+        start_date = start_value or (end_date - timedelta(days=30))
+
+        if start_date > end_date:
+            start_date, end_date = end_date, start_date
+
+        return start_date, end_date
+
+    def _build_fuel_efficiency(self, start_date, end_date):
+        fuel_logs = FuelLog.objects.filter(date__range=(start_date, end_date))
+
+        date_cursor = start_date
+        date_range = []
+        totals = {}
+        while date_cursor <= end_date:
+            totals[date_cursor] = {'liters': 0, 'distance': 0}
+            date_range.append(date_cursor)
+            date_cursor += timedelta(days=1)
+
+        for log in fuel_logs:
+            entry = totals.get(log.date)
+            if entry is None:
+                continue
+            entry['liters'] += float(log.fuel_liters or 0)
+            delta = (log.odometer or 0) - (log.previous_odometer or 0)
+            if delta > 0:
+                entry['distance'] += delta
+
+        labels = [day.strftime('%b %d') for day in date_range]
+        data = []
+        for day in date_range:
+            liters = totals[day]['liters']
+            distance = totals[day]['distance']
+            efficiency = distance / liters if liters > 0 else 0
+            data.append(round(efficiency, 2))
+
+        return {'labels': labels, 'data': data}
+
+    def _build_tire_costs(self, start_date, end_date):
+        tires = TireInventory.objects.filter(created_at__date__range=(start_date, end_date))
+        tire_costs = []
+
+        for tire in tires:
+            cost_per_km = float(tire.calculate_cost_per_km())
+            tire_costs.append((cost_per_km, tire))
+
+        tire_costs.sort(key=lambda item: item[0], reverse=True)
+
+        labels = []
+        data = []
+        for cost, tire in tire_costs[:6]:
+            labels.append(tire.serial_number)
+            data.append(round(cost, 2))
+
+        return {'labels': labels, 'data': data}
+
+    def _build_operations_summary(self, start_date, end_date):
+        coal_logs = CoalLog.objects.filter(date__range=(start_date, end_date))
+        mining_logs = MiningLog.objects.filter(date__range=(start_date, end_date))
+
+        coal_tonnage = float(coal_logs.aggregate(Sum('net_weight'))['net_weight__sum'] or 0)
+        mining_tonnage = float(mining_logs.aggregate(Sum('net'))['net__sum'] or 0)
+
+        return {
+            'labels': ['Coal', 'Mining'],
+            'data': [round(coal_tonnage, 2), round(mining_tonnage, 2)],
+            'trips': [coal_logs.count(), mining_logs.count()],
+        }
 
 
 class ActivityFeedView(LoginRequiredMixin, TemplateView):
