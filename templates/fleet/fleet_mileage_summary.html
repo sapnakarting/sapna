@@ -1,0 +1,96 @@
+{% extends 'base.html' %}
+{% block breadcrumbs %}
+{% include 'components/breadcrumbs.html' with breadcrumbs=breadcrumbs %}
+{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Header -->
+    <div class="flex justify-between items-center">
+        <div>
+            <h1 class="text-3xl font-black text-slate-900">Fleet Mileage Summary</h1>
+            <p class="text-gray-600">Total mileage by truck</p>
+        </div>
+    </div>
+    
+    <!-- Date Filter -->
+    <div class="bg-white p-6 rounded-2xl shadow-lg">
+        <form method="get" class="flex flex-col md:flex-row gap-4 items-end">
+            <div class="flex-1">
+                <label class="block text-sm font-semibold text-gray-700 mb-2">Date From</label>
+                <input type="date" name="date_from" value="{{ date_from }}" 
+                    class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-slate-500 focus:border-transparent">
+            </div>
+            
+            <div class="flex-1">
+                <label class="block text-sm font-semibold text-gray-700 mb-2">Date To</label>
+                <input type="date" name="date_to" value="{{ date_to }}" 
+                    class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-slate-500 focus:border-transparent">
+            </div>
+            
+            <button type="submit" class="bg-slate-900 text-white px-6 py-2 rounded-xl font-bold hover:bg-slate-800 transition-colors">
+                Filter
+            </button>
+        </form>
+    </div>
+    
+    <!-- Summary Stats -->
+    <div class="bg-white p-6 rounded-2xl shadow-lg">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="bg-slate-50 p-4 rounded-xl">
+                <p class="text-sm text-gray-600">Total Trucks</p>
+                <p class="text-3xl font-black text-slate-900">{{ truck_mileage|length }}</p>
+            </div>
+            <div class="bg-slate-50 p-4 rounded-xl">
+                <p class="text-sm text-gray-600">Grand Total Mileage</p>
+                <p class="text-3xl font-black text-green-600">{{ grand_total }} km</p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Mileage by Truck -->
+    <div class="bg-white p-6 rounded-2xl shadow-lg">
+        <h3 class="text-lg font-semibold text-slate-900 mb-4">Mileage by Truck</h3>
+        
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead class="bg-slate-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-900">Rank</th>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-900">Truck</th>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-900">Total Mileage</th>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-900">Entry Count</th>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-900">Avg Daily</th>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-900">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200">
+                    {% for item in truck_mileage %}
+                    <tr>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-bold text-slate-900">{{ forloop.counter }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900">{{ item.truck.plate_number }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-bold text-green-600">{{ item.total_mileage }} km</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ item.entry_count }} entries</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {{ item.total_mileage|div:item.entry_count }} km
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                            <a href="{% url 'fleet:daily-odo-report' %}?truck={{ item.truck.id }}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}" 
+                                class="text-slate-600 hover:text-slate-900">
+                                View Details
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="px-6 py-4 text-center text-gray-500">
+                            No mileage data available for the selected date range.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

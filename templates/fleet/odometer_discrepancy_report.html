@@ -1,0 +1,110 @@
+{% extends 'base.html' %}
+{% block breadcrumbs %}
+{% include 'components/breadcrumbs.html' with breadcrumbs=breadcrumbs %}
+{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Header -->
+    <div class="flex justify-between items-center">
+        <div>
+            <h1 class="text-3xl font-black text-slate-900">Odometer Discrepancy Report</h1>
+            <p class="text-gray-600">Compare Daily ODO vs Fuel Log readings</p>
+        </div>
+    </div>
+    
+    <!-- Filters -->
+    <div class="bg-white p-6 rounded-2xl shadow-lg">
+        <form method="get" class="space-y-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Truck</label>
+                    <select name="truck" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-slate-500 focus:border-transparent">
+                        <option value="">All Trucks</option>
+                        {% for truck in trucks %}
+                        <option value="{{ truck.id }}" {% if truck_filter|stringformat:"s" == truck.id|stringformat:"s" %}selected{% endif %}>{{ truck.plate_number }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Date From</label>
+                    <input type="date" name="date_from" value="{{ date_from }}" 
+                        class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-slate-500 focus:border-transparent">
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Date To</label>
+                    <input type="date" name="date_to" value="{{ date_to }}" 
+                        class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-slate-500 focus:border-transparent">
+                </div>
+            </div>
+            
+            <div class="flex justify-end">
+                <button type="submit" class="bg-slate-900 text-white px-6 py-2 rounded-xl font-bold hover:bg-slate-800 transition-colors">
+                    Filter
+                </button>
+            </div>
+        </form>
+    </div>
+    
+    <!-- Discrepancies Table -->
+    <div class="bg-white p-6 rounded-2xl shadow-lg">
+        <h3 class="text-lg font-semibold text-slate-900 mb-4">Discrepancies Found</h3>
+        
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead class="bg-slate-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-900">Date</th>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-900">Truck</th>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-900">Daily ODO Closing</th>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-900">Fuel Log ODO</th>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-900">Difference</th>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-900">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200">
+                    {% for discrepancy in discrepancies %}
+                    <tr class="{% if discrepancy.difference > 50 %}bg-red-50{% elif discrepancy.difference > 20 %}bg-amber-50{% endif %}">
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ discrepancy.date }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900">{{ discrepancy.truck.plate_number }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-semibold text-blue-600">{{ discrepancy.daily_odo_closing }} km</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-semibold text-green-600">{{ discrepancy.fuel_log_odometer }} km</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-bold {% if discrepancy.difference > 50 %}text-red-600{% elif discrepancy.difference > 20 %}text-amber-600{% else %}text-gray-600{% endif %}">
+                            {{ discrepancy.difference }} km
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                            <div class="flex items-center gap-2">
+                                <a href="{% url 'fleet:daily-odo-detail' discrepancy.daily_odo_id %}" 
+                                    class="text-slate-600 hover:text-slate-900" title="View Daily ODO">
+                                    View ODO
+                                </a>
+                                <span class="text-gray-300">|</span>
+                                <a href="{% url 'fleet:fuel-log-detail' discrepancy.fuel_log_id %}" 
+                                    class="text-slate-600 hover:text-slate-900" title="View Fuel Log">
+                                    View Fuel
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="px-6 py-4 text-center text-gray-500">
+                            No discrepancies found. All odometer readings match within acceptable tolerance.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        {% if discrepancies %}
+        <div class="mt-4 p-4 bg-slate-50 rounded-lg">
+            <p class="text-sm font-semibold text-slate-900">Summary:</p>
+            <p class="text-sm text-gray-600 mt-1">Found {{ discrepancies|length }} discrepancies where Daily ODO and Fuel Log readings differ by more than 10 km.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

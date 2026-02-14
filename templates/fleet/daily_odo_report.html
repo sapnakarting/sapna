@@ -1,0 +1,185 @@
+{% extends 'base.html' %}
+{% block breadcrumbs %}
+{% include 'components/breadcrumbs.html' with breadcrumbs=breadcrumbs %}
+{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Header -->
+    <div class="flex justify-between items-center">
+        <div>
+            <h1 class="text-3xl font-black text-slate-900">Daily Odometer Report</h1>
+            <p class="text-gray-600">Comprehensive mileage reporting</p>
+        </div>
+        <div class="flex gap-2">
+            <a href="{% url 'fleet:daily-odo-export-csv' %}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" 
+                class="bg-green-500 text-white px-4 py-2 rounded-xl font-bold hover:bg-green-600 transition-colors">
+                Export CSV
+            </a>
+        </div>
+    </div>
+    
+    <!-- Filters -->
+    <div class="bg-white p-6 rounded-2xl shadow-lg">
+        <form method="get" class="space-y-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Truck</label>
+                    {{ search_form.truck }}
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Date From</label>
+                    {{ search_form.date_from }}
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Date To</label>
+                    {{ search_form.date_to }}
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Search Remarks</label>
+                    {{ search_form.search }}
+                </div>
+            </div>
+            
+            <div class="flex justify-end">
+                <button type="submit" class="bg-slate-900 text-white px-6 py-2 rounded-xl font-bold hover:bg-slate-800 transition-colors">
+                    Filter
+                </button>
+            </div>
+        </form>
+    </div>
+    
+    <!-- Summary Stats -->
+    <div class="bg-white p-6 rounded-2xl shadow-lg">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div class="bg-slate-50 p-4 rounded-xl">
+                <p class="text-sm text-gray-600">Total Entries</p>
+                <p class="text-3xl font-black text-slate-900">{{ entries.count }}</p>
+            </div>
+            <div class="bg-slate-50 p-4 rounded-xl">
+                <p class="text-sm text-gray-600">Total Mileage</p>
+                <p class="text-3xl font-black text-slate-900">{{ total_mileage }} km</p>
+            </div>
+            <div class="bg-slate-50 p-4 rounded-xl">
+                <p class="text-sm text-gray-600">Unique Trucks</p>
+                <p class="text-3xl font-black text-slate-900">{{ truck_summary|length }}</p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Truck Summary -->
+    <div class="bg-white p-6 rounded-2xl shadow-lg">
+        <h3 class="text-lg font-semibold text-slate-900 mb-4">Mileage Summary by Truck</h3>
+        
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead class="bg-slate-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-900">Truck</th>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-900">Total Mileage</th>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-900">Entry Count</th>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-900">Avg Daily</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200">
+                    {% for truck_id, summary in truck_summary.items %}
+                    <tr>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900">{{ summary.truck.plate_number }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-bold text-green-600">{{ summary.total_mileage }} km</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ summary.entry_count }} entries</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {{ summary.total_mileage|div:summary.entry_count }} km
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="4" class="px-6 py-4 text-center text-gray-500">
+                            No data available for the selected filters.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+    <!-- Detailed Entries -->
+    <div class="bg-white p-6 rounded-2xl shadow-lg">
+        <h3 class="text-lg font-semibold text-slate-900 mb-4">Detailed Entries</h3>
+        
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead class="bg-slate-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-900">Date</th>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-900">Truck</th>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-900">Opening ODO</th>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-900">Closing ODO</th>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-900">Daily Mileage</th>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-900">Remarks</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200">
+                    {% for entry in entries %}
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ entry.date }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900">{{ entry.truck.plate_number }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ entry.opening_odometer }} km</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ entry.closing_odometer }} km</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-bold {% if entry.daily_mileage > 500 %}text-red-600{% elif entry.daily_mileage > 300 %}text-amber-600{% else %}text-green-600{% endif %}">
+                            {{ entry.daily_mileage }} km
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ entry.remarks|truncatechars:30 }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="px-6 py-4 text-center text-gray-500">
+                            No entries found for the selected filters.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Pagination -->
+        {% if is_paginated %}
+        <div class="mt-6 px-6 py-4 bg-slate-50 rounded-lg">
+            <div class="flex justify-between items-center">
+                <div>
+                    <p class="text-sm text-gray-700">
+                        Showing {{ page_obj.start_index }} to {{ page_obj.end_index }} of {{ paginator.count }} entries
+                    </p>
+                </div>
+                <div class="flex gap-2">
+                    {% if page_obj.has_previous %}
+                    <a href="?page=1{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" 
+                        class="px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50">
+                        &laquo; First
+                    </a>
+                    <a href="?page={{ page_obj.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" 
+                        class="px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50">
+                        &lsaquo; Previous
+                    </a>
+                    {% endif %}
+                    
+                    {% if page_obj.has_next %}
+                    <a href="?page={{ page_obj.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" 
+                        class="px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50">
+                        Next &rsaquo;
+                    </a>
+                    <a href="?page={{ paginator.num_pages }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" 
+                        class="px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50">
+                        Last &raquo;
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

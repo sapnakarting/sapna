@@ -3,8 +3,9 @@ from django.contrib.auth import authenticate
 from django.contrib.auth.forms import UserCreationForm as DjangoUserCreationForm
 from django.contrib.auth.models import User
 from django.utils import timezone
+from django.forms import formset_factory, BaseFormSet
 
-from .models import Truck, Driver, FuelLog, TireInventory, Alert
+from .models import Truck, Driver, FuelLog, TireInventory, Alert, DailyOdoRegistry
 
 
 class LoginForm(forms.Form):
@@ -463,3 +464,167 @@ class AlertUpdateForm(forms.ModelForm):
             self.fields['resolution_notes'].required = True
         else:
             self.fields['resolution_notes'].required = False
+
+
+class DailyOdoRegistryForm(forms.ModelForm):
+    class Meta:
+        model = DailyOdoRegistry
+        fields = ['truck', 'date', 'opening_odometer', 'closing_odometer', 'remarks']
+        widgets = {
+            'date': forms.DateInput(attrs={'type': 'date'}),
+            'truck': forms.Select(attrs={'class': 'w-full px-4 py-2 border border-gray-300 rounded-xl'}),
+            'remarks': forms.Textarea(attrs={
+                'class': 'w-full px-4 py-2 border border-gray-300 rounded-xl',
+                'rows': 3,
+                'placeholder': 'Any remarks or notes...'
+            })
+        }
+
+    def __init__(self, *args, **kwargs):
+        self.request = kwargs.pop('request', None)
+        super().__init__(*args, **kwargs)
+        
+        for field_name, field in self.fields.items():
+            if field_name not in ['remarks']:
+                field.widget.attrs.update({'class': 'w-full px-4 py-2 border border-gray-300 rounded-xl'})
+        
+        # Auto-populate opening odometer from truck's current odometer
+        if 'truck' in self.data:
+            truck_id = self.data.get('truck')
+            try:
+                truck = Truck.objects.get(pk=truck_id)
+                self.fields['opening_odometer'].initial = truck.current_odometer
+            except (Truck.DoesNotExist, ValueError):
+                pass
+        elif self.instance and self.instance.pk:
+            # For existing instances, keep the original opening odometer
+            pass
+        elif self.initial.get('truck'):
+            truck = self.initial['truck']
+            if isinstance(truck, Truck):
+                self.fields['opening_odometer'].initial = truck.current_odometer
+
+    def clean(self):
+        cleaned_data = super().clean()
+        opening_odometer = cleaned_data.get('opening_odometer')
+        closing_odometer = cleaned_data.get('closing_odometer')
+        truck = cleaned_data.get('truck')
+        date = cleaned_data.get('date')
+        
+        # Validate closing >= opening
+        if opening_odometer is not None and closing_odometer is not None:
+            if closing_odometer < opening_odometer:
+                self.add_error('closing_odometer', 'Closing odometer must be greater than or equal to opening odometer.')
+        
+        # Check for duplicate entries (same truck, same date)
+        if truck and date:
+            existing = DailyOdoRegistry.objects.filter(truck=truck, date=date)
+            if self.instance and self.instance.pk:
+                existing = existing.exclude(pk=self.instance.pk)
+            if existing.exists():
+                self.add_error('date', f'A daily odometer entry already exists for {truck.plate_number} on {date}.')
+        
+        return cleaned_data
+
+
+class DailyOdoRegistrySearchForm(forms.Form):
+    truck = forms.ModelChoiceField(
+        queryset=Truck.objects.all(),
+        required=False,
+        widget=forms.Select(attrs={
+            'class': 'w-full px-4 py-2 border border-gray-300 rounded-xl'
+        })
+    )
+    date_from = forms.DateField(
+        required=False,
+        widget=forms.DateInput(attrs={'type': 'date', 'class': 'w-full px-4 py-2 border border-gray-300 rounded-xl'})
+    )
+    date_to = forms.DateField(
+        required=False,
+        widget=forms.DateInput(attrs={'type': 'date', 'class': 'w-full px-4 py-2 border border-gray-300 rounded-xl'})
+    )
+    search = forms.CharField(
+        required=False,
+        widget=forms.TextInput(attrs={
+            'class': 'w-full px-4 py-2 border border-gray-300 rounded-xl',
+            'placeholder': 'Search remarks...'
+        })
+    )
+
+
+class BulkDailyOdoEntryForm(forms.Form):
+    truck_id = forms.IntegerField(widget=forms.HiddenInput())
+    truck_name = forms.CharField(disabled=True, required=False, widget=forms.TextInput(attrs={
+        'class': 'w-full px-4 py-2 border border-gray-300 rounded-xl bg-gray-100'
+    }))
+    opening_odometer = forms.IntegerField(disabled=True, required=False, widget=forms.NumberInput(attrs={
+        'class': 'w-full px-4 py-2 border border-gray-300 rounded-xl bg-gray-100'
+    }))
+    closing_odometer = forms.IntegerField(required=False, widget=forms.NumberInput(attrs={
+        'class': 'w-full px-4 py-2 border border-gray-300 rounded-xl',
+        'min': 0
+    }))
+    skip = forms.BooleanField(required=False, widget=forms.CheckboxInput(attrs={
+        'class': 'h-4 w-4 text-slate-600 border-gray-300 rounded'
+    }))
+    remarks = forms.CharField(required=False, widget=forms.TextInput(attrs={
+        'class': 'w-full px-4 py-2 border border-gray-300 rounded-xl',
+        'placeholder': 'Remarks...'
+    }))
+
+    def __init__(self, *args, **kwargs):
+        self.truck = kwargs.pop('truck', None)
+        super().__init__(*args, **kwargs)
+        
+        if self.truck:
+            self.fields['truck_id'].initial = self.truck.pk
+            self.fields['truck_name'].initial = self.truck.plate_number
+            self.fields['opening_odometer'].initial = self.truck.current_odometer
+
+    def clean(self):
+        cleaned_data = super().clean()
+        opening_odometer = cleaned_data.get('opening_odometer')
+        closing_odometer = cleaned_data.get('closing_odometer')
+        skip = cleaned_data.get('skip', False)
+        
+        # If skip is checked, no validation needed
+        if skip:
+            return cleaned_data
+        
+        # Validate closing odometer
+        if closing_odometer is not None and opening_odometer is not None:
+            if closing_odometer < opening_odometer:
+                self.add_error('closing_odometer', 'Closing odometer must be greater than or equal to opening odometer.')
+        
+        return cleaned_data
+
+
+class BulkDailyOdoEntryFormSet(BaseFormSet):
+    def __init__(self, *args, **kwargs):
+        self.date = kwargs.pop('date', None)
+        super().__init__(*args, **kwargs)
+    
+    def clean(self):
+        """Validate that no duplicate trucks exist in the formset"""
+        if any(self.errors):
+            return
+        
+        truck_ids = []
+        for form in self.forms:
+            if not form.cleaned_data.get('skip', False):
+                truck_id = form.cleaned_data.get('truck_id')
+                if truck_id in truck_ids:
+                    form.add_error('truck_id', 'Duplicate truck in bulk entry.')
+                truck_ids.append(truck_id)
+        
+        # Check for existing entries on the same date
+        if self.date and truck_ids:
+            existing_entries = DailyOdoRegistry.objects.filter(
+                date=self.date,
+                truck_id__in=truck_ids
+            )
+            
+            for entry in existing_entries:
+                for form in self.forms:
+                    if form.cleaned_data.get('truck_id') == entry.truck_id and not form.cleaned_data.get('skip', False):
+                        form.add_error('truck_id', f'An entry already exists for {entry.truck.plate_number} on {self.date}.')
