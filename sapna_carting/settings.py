@@ -36,6 +36,7 @@ INSTALLED_APPS = [
     'operations',
     'dashboard',
     'settings_app',
+    'reporting',
 ]
 
 MIDDLEWARE = [
