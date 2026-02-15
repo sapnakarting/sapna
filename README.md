@@ -1,6 +1,15 @@
 # SAPNA CARTING - Fleet Management System
 
+[![Deployment](https://img.shields.io/badge/deployed-railway-blue)](https://railway.app)
+[![Django](https://img.shields.io/badge/django-5.0-green)](https://www.djangoproject.com/)
+[![Python](https://img.shields.io/badge/python-3.12-blue)](https://www.python.org/)
+
 A comprehensive fleet management system for SAPNA CARTING built with Django 5.0, HTMX, and Tailwind CSS.
+
+## 🚀 Live Demo
+
+- **Production URL**: [https://sapna-carting.up.railway.app](https://sapna-carting.up.railway.app) *(update with your URL)*
+- **Health Status**: `/health/` endpoint
 
 ## Project Description
 
@@ -10,9 +19,12 @@ SAPNA CARTING Fleet Management System is a web-based application designed to man
 
 - **Backend**: Django 5.0.2
 - **Frontend**: HTML, Tailwind CSS, HTMX
-- **Database**: PostgreSQL (Supabase)
-- **Authentication**: Django Auth
-- **AI Integration**: Google Gemini API
+- **Database**: PostgreSQL (Railway/Supabase)
+- **Authentication**: Django Auth with role-based access
+- **AI Integration**: Google Gemini API for OCR and insights
+- **Error Tracking**: Sentry
+- **Static Files**: WhiteNoise
+- **Deployment**: Railway (primary) / Render (alternative)
 
 ## Prerequisites
 
@@ -119,6 +131,158 @@ sapna_carting/
 - AI-powered insights with Gemini
 - User authentication and authorization
 
-## License
+## 🚢 Deployment
+
+### Quick Deploy to Railway
+
+[![Deploy on Railway](https://railway.app/button.svg)](https://railway.app/template/your-template-url)
+
+1. Fork this repository
+2. Click the "Deploy on Railway" button above
+3. Add your environment variables
+4. Deploy!
+
+### Deploy to Render
+
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy)
+
+The `render.yaml` file is included for one-click deployment.
+
+### Manual Deployment
+
+See [MAINTENANCE.md](MAINTENANCE.md) for detailed deployment procedures.
+
+**Quick Start:**
+```bash
+# Install Railway CLI
+npm install -g @railway/cli
+
+# Login and link project
+railway login
+railway link
+
+# Deploy
+railway up
+
+# Run migrations
+railway run python manage.py migrate
+
+# Create superuser
+railway run python manage.py createsuperuser
+
+# Seed initial data
+railway run python manage.py seed_initial_data --mode production
+```
+
+### Post-Deployment Verification
+
+```bash
+# Run verification script
+./scripts/verify_deployment.sh https://your-app.up.railway.app
+
+# Or manually check
+ curl https://your-app.up.railway.app/health/
+```
+
+## 📊 Monitoring & Maintenance
+
+- **Health Check**: `/health/` - Basic system status
+- **Detailed Health**: `/health/detailed/` - Component status
+- **Readiness Probe**: `/ready/` - Kubernetes-style readiness check
+- **Error Tracking**: Sentry integration (configure SENTRY_DSN)
+
+See [MAINTENANCE.md](MAINTENANCE.md) for comprehensive maintenance procedures including:
+- Database backups and restores
+- Troubleshooting guides
+- Emergency procedures
+- Maintenance schedules
+
+See [MIGRATION_GUIDE.md](MIGRATION_GUIDE.md) for database migration procedures.
+
+## 🛠️ Management Commands
+
+### Database Operations
+
+```bash
+# Backup database
+python manage.py backup_database --format json --compress
+
+# Restore database
+python manage.py restore_database --backup-file backups/backup_YYYYMMDD_HHMMSS.json.gz
+
+# Optimize database
+python manage.py optimize_database --analyze
+
+# Seed data
+python manage.py seed_initial_data --mode production  # or --mode demo
+```
+
+### Alert Management
+
+```bash
+# Check document expiry
+python manage.py check_document_expiry
+
+# Check fuel efficiency
+python manage.py check_fuel_efficiency
+
+# Check tire costs
+python manage.py check_tire_costs
+```
+
+## 📁 Project Structure
+
+```
+sapna_carting/
+├── sapna_carting/       # Main Django project settings
+│   ├── settings.py      # Production-ready settings with Sentry
+│   ├── urls.py          # Health check endpoints included
+│   └── wsgi.py          # WSGI application
+├── fleet/               # Fleet management app
+│   ├── management/      # Custom management commands
+│   │   └── commands/
+│   │       ├── seed_initial_data.py
+│   │       ├── backup_database.py
+│   │       ├── restore_database.py
+│   │       └── optimize_database.py
+│   ├── models.py        # Core models (Truck, Driver, FuelLog, etc.)
+│   ├── views.py         # Main views
+│   └── views_alerts.py  # Alert management views
+├── operations/          # Operations management app
+├── dashboard/           # Dashboard and analytics
+├── settings_app/        # System settings
+├── reporting/           # Reports and analytics
+├── templates/           # HTML templates
+├── static/              # Static files (CSS, JS, images)
+├── scripts/             # Utility scripts
+│   └── verify_deployment.sh
+├── Procfile             # Railway deployment configuration
+├── railway.json         # Railway-specific settings
+├── render.yaml          # Render deployment configuration
+├── MAINTENANCE.md       # Maintenance runbook
+├── MIGRATION_GUIDE.md   # Database migration guide
+└── requirements.txt     # Python dependencies
+```
+
+## 🔒 Security
+
+- All secrets stored in environment variables
+- Django security settings enabled for production
+- HTTPS enforced in production
+- Sentry error tracking configured
+- Database credentials not stored in code
+
+## 🤝 Contributing
+
+1. Create a new branch for your feature
+2. Run tests before committing
+3. Follow existing code patterns
+4. Update documentation as needed
+
+## 📄 License
 
 Copyright © 2024 SAPNA CARTING. All rights reserved.
+
+---
+
+*For support, contact: [your-email@example.com]*
