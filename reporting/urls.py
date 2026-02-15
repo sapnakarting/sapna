@@ -1,5 +1,6 @@
 from django.urls import path
 from . import views
+from . import views_ai
 
 app_name = 'reporting'
 
@@ -56,4 +57,28 @@ urlpatterns = [
     path('api/efficiency-data/', views.EfficiencyChartAPIView.as_view(), name='api_efficiency'),
     path('api/fuel-trend-data/', views.FuelTrendChartAPIView.as_view(), name='api_fuel_trend'),
     path('api/driver-performance-data/', views.DriverPerformanceChartAPIView.as_view(), name='api_driver_performance'),
+    
+    # AI Insights
+    path('ai-insights/', views_ai.AIInsightsDashboardView.as_view(), name='ai_insights'),
+    path('ai-insights/trucks/', views_ai.AIInsightsTruckListView.as_view(), name='ai_insights_trucks'),
+    path('ai-insights/truck/<int:pk>/fuel/', views_ai.FuelEfficiencyInsightsView.as_view(), name='ai_fuel_insights'),
+    path('ai-insights/truck/<int:pk>/fuel/api/', views_ai.FuelEfficiencyInsightsAPIView.as_view(), name='ai_fuel_insights_api'),
+    path('ai-insights/truck/<int:pk>/anomalies/', views_ai.AnomalyDetectionView.as_view(), name='ai_anomalies'),
+    path('ai-insights/truck/<int:pk>/anomalies/api/', views_ai.AnomalyDetectionAPIView.as_view(), name='ai_anomalies_api'),
+    path('ai-insights/truck/<int:pk>/maintenance/', views_ai.MaintenanceRecommendationsView.as_view(), name='ai_maintenance'),
+    path('ai-insights/truck/<int:pk>/maintenance/api/', views_ai.MaintenanceRecommendationsAPIView.as_view(), name='ai_maintenance_api'),
+    path('ai-insights/truck/<int:pk>/regenerate/', views_ai.RegenerateInsightsView.as_view(), name='ai_regenerate_insights'),
+    
+    # OCR Processing
+    path('ocr/chalans/', views_ai.ChalanOCRListView.as_view(), name='ocr_list'),
+    path('ocr/chalan/<int:pk>/', views_ai.ChalanOCRView.as_view(), name='ocr_detail'),
+    path('ocr/chalan/<int:pk>/process/', views_ai.ChalanOCRProcessView.as_view(), name='ocr_process'),
+    path('ocr/chalans/bulk-process/', views_ai.BulkOCRProcessView.as_view(), name='ocr_bulk_process'),
+    
+    # AI Fleet Report
+    path('ai-fleet-report/', views_ai.FleetAIReportView.as_view(), name='ai_fleet_report'),
+    path('api/ai-fleet-report/', views_ai.FleetAIReportAPIView.as_view(), name='ai_fleet_report_api'),
+    
+    # AI Alert Management
+    path('api/ai-alert/create/', views_ai.CreateAIAlertView.as_view(), name='ai_alert_create'),
 ]
