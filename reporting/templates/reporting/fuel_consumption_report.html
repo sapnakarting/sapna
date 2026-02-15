@@ -1,0 +1,231 @@
+{% extends 'base.html' %}
+
+{% block breadcrumbs %}
+<div class="mb-6">
+    <nav class="text-sm text-slate-500">
+        <ol class="list-none p-0 inline-flex">
+            <li class="flex items-center">
+                <a href="{% url 'dashboard:index' %}" class="text-amber-600 hover:text-amber-700">Dashboard</a>
+                <svg class="fill-current w-3 h-3 mx-3" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><path d="M285.476 272.971L91.132 467.314c-9.373 9.373-24.569 9.373-33.941 0l-22.667-22.667c-9.357-9.357-9.375-24.522-.04-33.901L188.505 256 34.484 101.255c-9.335-9.379-9.317-24.544.04-33.901l22.667-22.667c9.373-9.373 24.569-9.373 33.941 0L285.475 239.03c9.373 9.372 9.373 24.568.001 33.941z"/></svg>
+            </li>
+            <li class="flex items-center">
+                <a href="{% url 'reporting:dashboard' %}" class="text-amber-600 hover:text-amber-700">Reports & Analytics</a>
+                <svg class="fill-current w-3 h-3 mx-3" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><path d="M285.476 272.971L91.132 467.314c-9.373 9.373-24.569 9.373-33.941 0l-22.667-22.667c-9.357-9.357-9.375-24.522-.04-33.901L188.505 256 34.484 101.255c-9.335-9.379-9.317-24.544.04-33.901l22.667-22.667c9.373-9.373 24.569-9.373 33.941 0L285.475 239.03c9.373 9.372 9.373 24.568.001 33.941z"/></svg>
+            </li>
+            <li class="flex items-center text-slate-700 font-semibold">Fuel Consumption Report</li>
+        </ol>
+    </nav>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="space-y-8">
+    <!-- Header -->
+    <div class="flex justify-between items-start">
+        <div>
+            <h1 class="text-3xl font-bold text-slate-900">Fuel Consumption Report</h1>
+            <p class="text-slate-600 mt-2">Track fuel consumption, costs, and efficiency metrics</p>
+        </div>
+    </div>
+
+    <!-- Filter Form -->
+    <div class="bg-white rounded-2xl shadow-lg p-6">
+        <h3 class="text-lg font-bold text-slate-900 mb-4">Filters</h3>
+        <form method="GET" class="grid grid-cols-1 md:grid-cols-5 gap-4">
+            <div>
+                <label class="block text-sm font-medium text-slate-700 mb-1">From Date</label>
+                <input type="date" name="date_from" value="{{ request.GET.date_from }}" 
+                       class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-slate-700 mb-1">To Date</label>
+                <input type="date" name="date_to" value="{{ request.GET.date_to }}" 
+                       class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-slate-700 mb-1">Truck</label>
+                <select name="truck" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent">
+                    <option value="">All Trucks</option>
+                    {% for truck in form.truck.field.queryset %}
+                    <option value="{{ truck.id }}" {% if request.GET.truck == truck.id|stringformat:"s" %}selected{% endif %}>
+                        {{ truck.plate_number }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-slate-700 mb-1">Entry Type</label>
+                <select name="entry_type" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent">
+                    <option value="">All Entry Types</option>
+                    <option value="FULL_TANK" {% if request.GET.entry_type == "FULL_TANK" %}selected{% endif %}>Full Tank</option>
+                    <option value="PER_TRIP" {% if request.GET.entry_type == "PER_TRIP" %}selected{% endif %}>Per Trip</option>
+                </select>
+            </div>
+            <div class="flex items-end">
+                <button type="submit" class="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-lg font-semibold transition-colors mr-2">
+                    Apply Filters
+                </button>
+                <a href="{% url 'reporting:fuel_report' %}" class="bg-slate-500 hover:bg-slate-600 text-white px-4 py-2 rounded-lg font-semibold transition-colors">
+                    Clear
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <!-- Summary Stats -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div class="bg-white rounded-2xl shadow-lg p-6 border-l-4 border-amber-500">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-slate-500 uppercase tracking-wide">Total Fuel</p>
+                    <p class="text-3xl font-bold text-slate-900 mt-1">{{ total_liters|floatformat:2 }} L</p>
+                </div>
+                <div class="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center">
+                    <svg class="w-6 h-6 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/>
+                    </svg>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-2xl shadow-lg p-6 border-l-4 border-green-500">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-slate-500 uppercase tracking-wide">Total Cost</p>
+                    <p class="text-3xl font-bold text-slate-900 mt-1">₹{{ total_cost|floatformat:2 }}</p>
+                </div>
+                <div class="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
+                    <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-2xl shadow-lg p-6 border-l-4 border-blue-500">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-slate-500 uppercase tracking-wide">Total Trips</p>
+                    <p class="text-3xl font-bold text-slate-900 mt-1">{{ total_trips }}</p>
+                </div>
+                <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+                    <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
+                    </svg>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-2xl shadow-lg p-6 border-l-4 border-purple-500">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-slate-500 uppercase tracking-wide">Avg Cost/L</p>
+                    <p class="text-3xl font-bold text-slate-900 mt-1">
+                        {% if total_liters > 0 %}
+                            ₹{{ total_cost|div:total_liters|floatformat:2 }}
+                        {% else %}
+                            ₹0.00
+                        {% endif %}
+                    </p>
+                </div>
+                <div class="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
+                    <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+                    </svg>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Export Actions -->
+    <div class="bg-white rounded-2xl shadow-lg p-6">
+        <div class="flex items-center justify-between">
+            <h3 class="text-lg font-bold text-slate-900">Export Options</h3>
+            <div class="flex space-x-3">
+                <a href="{% url 'reporting:fuel_export_csv' %}{% if request.GET %}?{{ request.GET.urlencode }}{% endif %}" 
+                   class="inline-flex items-center px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg font-semibold transition-colors">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                    </svg>
+                    Export CSV
+                </a>
+                <a href="{% url 'reporting:fuel_export_pdf' %}{% if request.GET %}?{{ request.GET.urlencode }}{% endif %}" 
+                   class="inline-flex items-center px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg font-semibold transition-colors">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+                    </svg>
+                    Export PDF
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Fuel Logs Table -->
+    <div class="bg-white rounded-2xl shadow-lg overflow-hidden">
+        <div class="px-6 py-4 border-b border-slate-200">
+            <h3 class="text-lg font-bold text-slate-900">Fuel Log Details</h3>
+        </div>
+        
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-slate-200">
+                <thead class="bg-slate-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Date</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Truck</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Driver</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Entry Type</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Odometer</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Distance</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Fuel (L)</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Cost</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Efficiency</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-slate-200">
+                    {% for log in fuel_logs %}
+                    <tr class="hover:bg-slate-50">
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-900">{{ log.date }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-900 font-medium">{{ log.truck.plate_number }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-600">{{ log.driver.name }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-600">{{ log.get_entry_type_display }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-600">{{ log.odometer|intcomma }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-600">
+                            {% if log.previous_odometer > 0 %}
+                                {{ log.odometer|add:"-"|add:log.previous_odometer|intcomma }}
+                            {% else %}
+                                N/A
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-600">{{ log.fuel_liters|floatformat:2 }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-600">₹{{ log.fuel_cost|floatformat:2 }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-600">
+                            {% if log.previous_odometer > 0 and log.fuel_liters > 0 %}
+                                {{ log.odometer|add:"-"|add:log.previous_odometer|div:log.fuel_liters|floatformat:2 }} km/l
+                            {% else %}
+                                N/A
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="9" class="px-6 py-8 text-center text-slate-500">
+                            <svg class="w-12 h-12 mx-auto text-slate-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                            </svg>
+                            <p class="text-lg font-medium">No fuel logs found</p>
+                            <p class="text-sm mt-1">Try adjusting your filters or date range</p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        {% if fuel_logs %}
+        <div class="px-6 py-3 bg-slate-50 border-t border-slate-200">
+            <p class="text-sm text-slate-600">Showing {{ fuel_logs|length }} of 100+ entries</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

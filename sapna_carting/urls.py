@@ -10,6 +10,7 @@ urlpatterns = [
     path('fleet/', include('fleet.urls')),
     path('operations/', include('operations.urls')),
     path('dashboard/', include('dashboard.urls')),
+    path('reporting/', include('reporting.urls')),
     path('settings/', include('settings_app.urls')),
 ]
 
