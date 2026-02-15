@@ -1,0 +1,59 @@
+{% extends 'base.html' %}
+{% block breadcrumbs %}
+{% include 'components/breadcrumbs.html' with breadcrumbs=breadcrumbs %}
+{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div>
+            <h1 class="text-3xl font-black text-slate-900">Report Schedules</h1>
+            <p class="text-gray-600">Manage automated report delivery cadence.</p>
+        </div>
+        <a href="{% url 'dashboard:report-schedule-create' %}" class="bg-slate-900 text-white px-4 py-2 rounded-xl font-bold hover:bg-slate-800 transition">
+            + New Schedule
+        </a>
+    </div>
+
+    <div class="bg-white p-6 rounded-2xl shadow-lg">
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead class="bg-slate-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-900">Name</th>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-900">Report Type</th>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-900">Frequency</th>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-900">Format</th>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-900">Next Run</th>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-900">Last Run</th>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-900">Status</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200">
+                    {% for schedule in schedules %}
+                    <tr>
+                        <td class="px-6 py-4 text-sm font-medium text-slate-900">{{ schedule.name }}</td>
+                        <td class="px-6 py-4 text-sm text-gray-500">{{ schedule.get_report_type_display }}</td>
+                        <td class="px-6 py-4 text-sm text-gray-500">{{ schedule.get_frequency_display }}</td>
+                        <td class="px-6 py-4 text-sm text-gray-500">{{ schedule.output_format }}</td>
+                        <td class="px-6 py-4 text-sm text-gray-500">{{ schedule.next_run_at|date:'M d, Y H:i' }}</td>
+                        <td class="px-6 py-4 text-sm text-gray-500">{{ schedule.last_run_at|date:'M d, Y H:i' }}</td>
+                        <td class="px-6 py-4 text-sm text-gray-500">
+                            {% if schedule.is_active %}
+                                <span class="px-2 py-1 rounded-full text-xs bg-green-100 text-green-700">Active</span>
+                            {% else %}
+                                <span class="px-2 py-1 rounded-full text-xs bg-gray-100 text-gray-600">Paused</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="px-6 py-4 text-center text-gray-500">No report schedules configured yet.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

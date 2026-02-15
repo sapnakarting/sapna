@@ -1,0 +1,46 @@
+{% extends 'base.html' %}
+{% block breadcrumbs %}
+{% include 'components/breadcrumbs.html' with breadcrumbs=breadcrumbs %}
+{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <div>
+        <h1 class="text-3xl font-black text-slate-900">Reports</h1>
+        <p class="text-gray-600">Generate detailed PDF and CSV reports across fleet operations.</p>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <a href="{% url 'dashboard:fuel-consumption-report' %}" class="bg-white p-6 rounded-2xl shadow-lg border border-slate-100 hover:border-amber-400 transition">
+            <h3 class="text-lg font-semibold text-slate-900">Fuel Consumption</h3>
+            <p class="text-sm text-gray-600 mt-2">Analyze fuel usage, cost, and efficiency.</p>
+        </a>
+        <a href="{% url 'dashboard:tire-cost-report' %}" class="bg-white p-6 rounded-2xl shadow-lg border border-slate-100 hover:border-amber-400 transition">
+            <h3 class="text-lg font-semibold text-slate-900">Tire Cost Analysis</h3>
+            <p class="text-sm text-gray-600 mt-2">Track tire lifecycle costs and mileage.</p>
+        </a>
+        <a href="{% url 'dashboard:operations-summary-report' %}" class="bg-white p-6 rounded-2xl shadow-lg border border-slate-100 hover:border-amber-400 transition">
+            <h3 class="text-lg font-semibold text-slate-900">Operations Summary</h3>
+            <p class="text-sm text-gray-600 mt-2">Review coal and mining operational performance.</p>
+        </a>
+        <a href="{% url 'dashboard:fleet-status-report' %}" class="bg-white p-6 rounded-2xl shadow-lg border border-slate-100 hover:border-amber-400 transition">
+            <h3 class="text-lg font-semibold text-slate-900">Fleet Status</h3>
+            <p class="text-sm text-gray-600 mt-2">Get a snapshot of fleet health and compliance.</p>
+        </a>
+    </div>
+
+    {% if user.userprofile.is_admin %}
+    <div class="bg-white p-6 rounded-2xl shadow-lg border border-slate-100">
+        <div class="flex items-center justify-between">
+            <div>
+                <h3 class="text-lg font-semibold text-slate-900">Report Schedules</h3>
+                <p class="text-sm text-gray-600">Automate report generation on a recurring cadence.</p>
+            </div>
+            <a href="{% url 'dashboard:report-schedule-list' %}" class="bg-slate-900 text-white px-4 py-2 rounded-xl font-bold hover:bg-slate-800 transition">
+                Manage Schedules
+            </a>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

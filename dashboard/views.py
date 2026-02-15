@@ -1,14 +1,39 @@
-from django.views.generic import TemplateView
+from datetime import timedelta
+
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db.models import Sum
+from django.http import HttpResponse, JsonResponse
+from django.urls import reverse_lazy
 from django.utils import timezone
 from django.utils.dateparse import parse_date
-from datetime import timedelta
-from django.http import JsonResponse
+from django.views import View
+from django.views.generic import CreateView, ListView, TemplateView
 
 from fleet.models import Truck, Driver, FuelLog, TireInventory
+from fleet.utils.permissions import AdminRequiredMixin
 from operations.models import CoalLog, MiningLog
-from dashboard.models import ActivityLog, ComplianceAlert
+from dashboard.models import ActivityLog, ComplianceAlert, ReportSchedule
+from .forms import (
+    FleetStatusFilterForm,
+    FuelReportFilterForm,
+    OperationsSummaryFilterForm,
+    ReportScheduleForm,
+    TireCostReportFilterForm,
+)
+from .utils.reporting import (
+    generate_fleet_status_csv,
+    generate_fleet_status_pdf,
+    generate_fuel_consumption_csv,
+    generate_fuel_consumption_pdf,
+    generate_operations_summary_csv,
+    generate_operations_summary_pdf,
+    generate_tire_cost_csv,
+    generate_tire_cost_pdf,
+    get_fleet_status_data,
+    get_fuel_consumption_data,
+    get_operations_summary_data,
+    get_tire_cost_data,
+)
 
 
 class DashboardView(LoginRequiredMixin, TemplateView):
@@ -378,3 +403,222 @@ class DismissAlertView(LoginRequiredMixin, TemplateView):
             return JsonResponse({'success': True})
         except ComplianceAlert.DoesNotExist:
             return JsonResponse({'success': False, 'message': 'Alert not found'}, status=404)
+
+
+class ReportIndexView(LoginRequiredMixin, TemplateView):
+    template_name = 'dashboard/report_index.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['breadcrumbs'] = [
+            {'name': 'Reports', 'url': None}
+        ]
+        return context
+
+
+class FuelConsumptionReportView(LoginRequiredMixin, TemplateView):
+    template_name = 'dashboard/fuel_consumption_report.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        form = FuelReportFilterForm(self.request.GET)
+        filters = form.cleaned_data if form.is_valid() else {}
+        data = get_fuel_consumption_data(filters)
+
+        truck_summary = sorted(
+            data['truck_summary'].values(),
+            key=lambda item: item['truck'].plate_number,
+        )
+        context.update({
+            'filter_form': form,
+            'summary': data['summary'],
+            'entries': data['entries'],
+            'truck_summary': truck_summary,
+            'breadcrumbs': [
+                {'name': 'Reports', 'url': reverse_lazy('dashboard:report-index')},
+                {'name': 'Fuel Consumption', 'url': None},
+            ],
+        })
+        return context
+
+
+class FuelConsumptionReportPDFView(LoginRequiredMixin, View):
+    def get(self, request, *args, **kwargs):
+        form = FuelReportFilterForm(request.GET)
+        filters = form.cleaned_data if form.is_valid() else {}
+        pdf = generate_fuel_consumption_pdf(filters)
+        response = HttpResponse(pdf, content_type='application/pdf')
+        response['Content-Disposition'] = 'attachment; filename="fuel_consumption_report.pdf"'
+        return response
+
+
+class FuelConsumptionReportCSVView(LoginRequiredMixin, View):
+    def get(self, request, *args, **kwargs):
+        form = FuelReportFilterForm(request.GET)
+        filters = form.cleaned_data if form.is_valid() else {}
+        csv_data = generate_fuel_consumption_csv(filters)
+        response = HttpResponse(csv_data, content_type='text/csv')
+        response['Content-Disposition'] = 'attachment; filename="fuel_consumption_report.csv"'
+        return response
+
+
+class TireCostReportView(LoginRequiredMixin, TemplateView):
+    template_name = 'dashboard/tire_cost_report.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        form = TireCostReportFilterForm(self.request.GET)
+        filters = form.cleaned_data if form.is_valid() else {}
+        data = get_tire_cost_data(filters)
+
+        context.update({
+            'filter_form': form,
+            'summary': data['summary'],
+            'tires': data['tires'],
+            'status_counts': data['status_counts'],
+            'breadcrumbs': [
+                {'name': 'Reports', 'url': reverse_lazy('dashboard:report-index')},
+                {'name': 'Tire Cost Analysis', 'url': None},
+            ],
+        })
+        return context
+
+
+class TireCostReportPDFView(LoginRequiredMixin, View):
+    def get(self, request, *args, **kwargs):
+        form = TireCostReportFilterForm(request.GET)
+        filters = form.cleaned_data if form.is_valid() else {}
+        pdf = generate_tire_cost_pdf(filters)
+        response = HttpResponse(pdf, content_type='application/pdf')
+        response['Content-Disposition'] = 'attachment; filename="tire_cost_report.pdf"'
+        return response
+
+
+class TireCostReportCSVView(LoginRequiredMixin, View):
+    def get(self, request, *args, **kwargs):
+        form = TireCostReportFilterForm(request.GET)
+        filters = form.cleaned_data if form.is_valid() else {}
+        csv_data = generate_tire_cost_csv(filters)
+        response = HttpResponse(csv_data, content_type='text/csv')
+        response['Content-Disposition'] = 'attachment; filename="tire_cost_report.csv"'
+        return response
+
+
+class OperationsSummaryReportView(LoginRequiredMixin, TemplateView):
+    template_name = 'dashboard/operations_summary_report.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        form = OperationsSummaryFilterForm(self.request.GET)
+        filters = form.cleaned_data if form.is_valid() else {}
+        data = get_operations_summary_data(filters)
+
+        context.update({
+            'filter_form': form,
+            'coal_summary': data['coal_summary'],
+            'mining_summary': data['mining_summary'],
+            'coal_logs': data['coal_logs'],
+            'mining_logs': data['mining_logs'],
+            'breadcrumbs': [
+                {'name': 'Reports', 'url': reverse_lazy('dashboard:report-index')},
+                {'name': 'Operations Summary', 'url': None},
+            ],
+        })
+        return context
+
+
+class OperationsSummaryReportPDFView(LoginRequiredMixin, View):
+    def get(self, request, *args, **kwargs):
+        form = OperationsSummaryFilterForm(request.GET)
+        filters = form.cleaned_data if form.is_valid() else {}
+        pdf = generate_operations_summary_pdf(filters)
+        response = HttpResponse(pdf, content_type='application/pdf')
+        response['Content-Disposition'] = 'attachment; filename="operations_summary_report.pdf"'
+        return response
+
+
+class OperationsSummaryReportCSVView(LoginRequiredMixin, View):
+    def get(self, request, *args, **kwargs):
+        form = OperationsSummaryFilterForm(request.GET)
+        filters = form.cleaned_data if form.is_valid() else {}
+        csv_data = generate_operations_summary_csv(filters)
+        response = HttpResponse(csv_data, content_type='text/csv')
+        response['Content-Disposition'] = 'attachment; filename="operations_summary_report.csv"'
+        return response
+
+
+class FleetStatusReportView(LoginRequiredMixin, TemplateView):
+    template_name = 'dashboard/fleet_status_report.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        form = FleetStatusFilterForm(self.request.GET)
+        filters = form.cleaned_data if form.is_valid() else {}
+        data = get_fleet_status_data(filters)
+
+        context.update({
+            'filter_form': form,
+            'summary': data['summary'],
+            'driver_summary': data['driver_summary'],
+            'tire_summary': data['tire_summary'],
+            'trucks': data['trucks'],
+            'upcoming_docs': data['upcoming_docs'],
+            'pending_alerts': data['pending_alerts'],
+            'breadcrumbs': [
+                {'name': 'Reports', 'url': reverse_lazy('dashboard:report-index')},
+                {'name': 'Fleet Status', 'url': None},
+            ],
+        })
+        return context
+
+
+class FleetStatusReportPDFView(LoginRequiredMixin, View):
+    def get(self, request, *args, **kwargs):
+        form = FleetStatusFilterForm(request.GET)
+        filters = form.cleaned_data if form.is_valid() else {}
+        pdf = generate_fleet_status_pdf(filters)
+        response = HttpResponse(pdf, content_type='application/pdf')
+        response['Content-Disposition'] = 'attachment; filename="fleet_status_report.pdf"'
+        return response
+
+
+class FleetStatusReportCSVView(LoginRequiredMixin, View):
+    def get(self, request, *args, **kwargs):
+        form = FleetStatusFilterForm(request.GET)
+        filters = form.cleaned_data if form.is_valid() else {}
+        csv_data = generate_fleet_status_csv(filters)
+        response = HttpResponse(csv_data, content_type='text/csv')
+        response['Content-Disposition'] = 'attachment; filename="fleet_status_report.csv"'
+        return response
+
+
+class ReportScheduleListView(AdminRequiredMixin, ListView):
+    model = ReportSchedule
+    template_name = 'dashboard/report_schedule_list.html'
+    context_object_name = 'schedules'
+    paginate_by = 20
+    ordering = ['next_run_at']
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['breadcrumbs'] = [
+            {'name': 'Reports', 'url': reverse_lazy('dashboard:report-index')},
+            {'name': 'Schedules', 'url': None},
+        ]
+        return context
+
+
+class ReportScheduleCreateView(AdminRequiredMixin, CreateView):
+    model = ReportSchedule
+    form_class = ReportScheduleForm
+    template_name = 'dashboard/report_schedule_form.html'
+    success_url = reverse_lazy('dashboard:report-schedule-list')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['breadcrumbs'] = [
+            {'name': 'Reports', 'url': reverse_lazy('dashboard:report-index')},
+            {'name': 'Schedules', 'url': reverse_lazy('dashboard:report-schedule-list')},
+            {'name': 'Create', 'url': None},
+        ]
+        return context

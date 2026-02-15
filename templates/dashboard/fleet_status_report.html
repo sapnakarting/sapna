@@ -1,0 +1,147 @@
+{% extends 'base.html' %}
+{% block breadcrumbs %}
+{% include 'components/breadcrumbs.html' with breadcrumbs=breadcrumbs %}
+{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div>
+            <h1 class="text-3xl font-black text-slate-900">Fleet Status Report</h1>
+            <p class="text-gray-600">Fleet readiness, staffing, and compliance overview.</p>
+        </div>
+        <div class="flex gap-2">
+            <a href="{% url 'dashboard:fleet-status-export-pdf' %}{% if request.GET.urlencode %}?{{ request.GET.urlencode }}{% endif %}"
+               class="bg-slate-900 text-white px-4 py-2 rounded-xl font-bold hover:bg-slate-800 transition">
+                Export PDF
+            </a>
+            <a href="{% url 'dashboard:fleet-status-export-csv' %}{% if request.GET.urlencode %}?{{ request.GET.urlencode }}{% endif %}"
+               class="bg-green-500 text-white px-4 py-2 rounded-xl font-bold hover:bg-green-600 transition">
+                Export CSV
+            </a>
+        </div>
+    </div>
+
+    <div class="bg-white p-6 rounded-2xl shadow-lg">
+        <form method="get" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-2">Status</label>
+                {{ filter_form.status }}
+            </div>
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-2">Fleet Type</label>
+                {{ filter_form.fleet_type }}
+            </div>
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-2">Mining Type</label>
+                {{ filter_form.mining_type }}
+            </div>
+            <div class="md:col-span-3 flex justify-end">
+                <button type="submit" class="bg-slate-900 text-white px-6 py-2 rounded-xl font-bold hover:bg-slate-800 transition">
+                    Filter
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
+        <div class="bg-white p-4 rounded-2xl shadow-lg">
+            <p class="text-sm text-gray-600">Total Trucks</p>
+            <p class="text-2xl font-black text-slate-900">{{ summary.total_trucks }}</p>
+        </div>
+        <div class="bg-white p-4 rounded-2xl shadow-lg">
+            <p class="text-sm text-gray-600">Active</p>
+            <p class="text-2xl font-black text-slate-900">{{ summary.active_trucks }}</p>
+        </div>
+        <div class="bg-white p-4 rounded-2xl shadow-lg">
+            <p class="text-sm text-gray-600">Inactive</p>
+            <p class="text-2xl font-black text-slate-900">{{ summary.inactive_trucks }}</p>
+        </div>
+        <div class="bg-white p-4 rounded-2xl shadow-lg">
+            <p class="text-sm text-gray-600">Maintenance</p>
+            <p class="text-2xl font-black text-slate-900">{{ summary.maintenance_trucks }}</p>
+        </div>
+        <div class="bg-white p-4 rounded-2xl shadow-lg">
+            <p class="text-sm text-gray-600">Pending Alerts</p>
+            <p class="text-2xl font-black text-slate-900">{{ pending_alerts }}</p>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="bg-white p-4 rounded-2xl shadow-lg">
+            <p class="text-sm text-gray-600">Drivers On Duty</p>
+            <p class="text-2xl font-black text-slate-900">{{ driver_summary.on_duty }}/{{ driver_summary.total_drivers }}</p>
+        </div>
+        <div class="bg-white p-4 rounded-2xl shadow-lg">
+            <p class="text-sm text-gray-600">Mounted Tires</p>
+            <p class="text-2xl font-black text-slate-900">{{ tire_summary.mounted_tires }}/{{ tire_summary.total_tires }}</p>
+        </div>
+        <div class="bg-white p-4 rounded-2xl shadow-lg">
+            <p class="text-sm text-gray-600">Repair/Scrap</p>
+            <p class="text-2xl font-black text-slate-900">{{ tire_summary.repair_tires|add:tire_summary.scrapped_tires }}</p>
+        </div>
+    </div>
+
+    <div class="bg-white p-6 rounded-2xl shadow-lg">
+        <h3 class="text-lg font-semibold text-slate-900 mb-4">Truck Status Details</h3>
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead class="bg-slate-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-900">Truck</th>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-900">Status</th>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-900">Fleet Type</th>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-900">Transporter</th>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-900">Current ODO</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200">
+                    {% for truck in trucks %}
+                    <tr>
+                        <td class="px-6 py-4 text-sm font-medium text-slate-900">{{ truck.plate_number }}</td>
+                        <td class="px-6 py-4 text-sm text-gray-500">{{ truck.status }}</td>
+                        <td class="px-6 py-4 text-sm text-gray-500">{{ truck.fleet_type }}</td>
+                        <td class="px-6 py-4 text-sm text-gray-500">{{ truck.transporter_name }}</td>
+                        <td class="px-6 py-4 text-sm text-gray-500">{{ truck.current_odometer }} km</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="px-6 py-4 text-center text-gray-500">No trucks found.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="bg-white p-6 rounded-2xl shadow-lg">
+        <h3 class="text-lg font-semibold text-slate-900 mb-4">Upcoming Document Expirations (30 Days)</h3>
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead class="bg-slate-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-900">Truck</th>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-900">Document</th>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-900">Expiry Date</th>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-900">Days Until</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200">
+                    {% for doc in upcoming_docs %}
+                    <tr>
+                        <td class="px-6 py-4 text-sm font-medium text-slate-900">{{ doc.truck.plate_number }}</td>
+                        <td class="px-6 py-4 text-sm text-gray-500">{{ doc.document }}</td>
+                        <td class="px-6 py-4 text-sm text-gray-500">{{ doc.expiry_date }}</td>
+                        <td class="px-6 py-4 text-sm text-gray-500">{{ doc.days_until }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="4" class="px-6 py-4 text-center text-gray-500">No upcoming document expirations.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

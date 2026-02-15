@@ -1,0 +1,120 @@
+{% extends 'base.html' %}
+{% block breadcrumbs %}
+{% include 'components/breadcrumbs.html' with breadcrumbs=breadcrumbs %}
+{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div>
+            <h1 class="text-3xl font-black text-slate-900">Tire Cost Analysis</h1>
+            <p class="text-gray-600">Monitor tire lifecycle costs and performance.</p>
+        </div>
+        <div class="flex gap-2">
+            <a href="{% url 'dashboard:tire-cost-export-pdf' %}{% if request.GET.urlencode %}?{{ request.GET.urlencode }}{% endif %}"
+               class="bg-slate-900 text-white px-4 py-2 rounded-xl font-bold hover:bg-slate-800 transition">
+                Export PDF
+            </a>
+            <a href="{% url 'dashboard:tire-cost-export-csv' %}{% if request.GET.urlencode %}?{{ request.GET.urlencode }}{% endif %}"
+               class="bg-green-500 text-white px-4 py-2 rounded-xl font-bold hover:bg-green-600 transition">
+                Export CSV
+            </a>
+        </div>
+    </div>
+
+    <div class="bg-white p-6 rounded-2xl shadow-lg">
+        <form method="get" class="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-2">Truck</label>
+                {{ filter_form.truck }}
+            </div>
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-2">Status</label>
+                {{ filter_form.status }}
+            </div>
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-2">Date From</label>
+                {{ filter_form.date_from }}
+            </div>
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-2">Date To</label>
+                {{ filter_form.date_to }}
+            </div>
+            <div class="md:col-span-4 flex justify-end">
+                <button type="submit" class="bg-slate-900 text-white px-6 py-2 rounded-xl font-bold hover:bg-slate-800 transition">
+                    Filter
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div class="bg-white p-4 rounded-2xl shadow-lg">
+            <p class="text-sm text-gray-600">Total Tires</p>
+            <p class="text-2xl font-black text-slate-900">{{ summary.total_tires }}</p>
+        </div>
+        <div class="bg-white p-4 rounded-2xl shadow-lg">
+            <p class="text-sm text-gray-600">Total Cost</p>
+            <p class="text-2xl font-black text-slate-900">₹{{ summary.total_cost|floatformat:2 }}</p>
+        </div>
+        <div class="bg-white p-4 rounded-2xl shadow-lg">
+            <p class="text-sm text-gray-600">Total Mileage</p>
+            <p class="text-2xl font-black text-slate-900">{{ summary.total_mileage }} km</p>
+        </div>
+        <div class="bg-white p-4 rounded-2xl shadow-lg">
+            <p class="text-sm text-gray-600">Avg Cost/Km</p>
+            <p class="text-2xl font-black text-slate-900">₹{{ summary.avg_cost_per_km|floatformat:2 }}</p>
+        </div>
+    </div>
+
+    <div class="bg-white p-6 rounded-2xl shadow-lg">
+        <h3 class="text-lg font-semibold text-slate-900 mb-4">Status Breakdown</h3>
+        <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
+            {% for status, count in status_counts.items %}
+            <div class="bg-slate-50 p-4 rounded-xl">
+                <p class="text-sm text-gray-600">{{ status|title }}</p>
+                <p class="text-2xl font-black text-slate-900">{{ count }}</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div class="bg-white p-6 rounded-2xl shadow-lg">
+        <h3 class="text-lg font-semibold text-slate-900 mb-4">Tire Cost Details</h3>
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead class="bg-slate-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-900">Serial</th>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-900">Brand</th>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-900">Status</th>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-900">Truck</th>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-900">Mileage</th>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-900">Total Cost</th>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-900">Cost/Km</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200">
+                    {% for entry in tires %}
+                    <tr>
+                        <td class="px-6 py-4 text-sm font-medium text-slate-900">{{ entry.tire.serial_number }}</td>
+                        <td class="px-6 py-4 text-sm text-gray-500">{{ entry.tire.brand }}</td>
+                        <td class="px-6 py-4 text-sm text-gray-500">{{ entry.tire.status }}</td>
+                        <td class="px-6 py-4 text-sm text-gray-500">
+                            {% if entry.tire.truck %}{{ entry.tire.truck.plate_number }}{% else %}-{% endif %}
+                        </td>
+                        <td class="px-6 py-4 text-sm text-gray-500">{{ entry.current_mileage }} km</td>
+                        <td class="px-6 py-4 text-sm text-gray-500">₹{{ entry.total_cost|floatformat:2 }}</td>
+                        <td class="px-6 py-4 text-sm text-gray-500">₹{{ entry.cost_per_km|floatformat:2 }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="px-6 py-4 text-center text-gray-500">No tire data found for the selected filters.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

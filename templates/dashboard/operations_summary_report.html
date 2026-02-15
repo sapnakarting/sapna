@@ -1,0 +1,140 @@
+{% extends 'base.html' %}
+{% block breadcrumbs %}
+{% include 'components/breadcrumbs.html' with breadcrumbs=breadcrumbs %}
+{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div>
+            <h1 class="text-3xl font-black text-slate-900">Operations Summary</h1>
+            <p class="text-gray-600">Coal and mining performance overview.</p>
+        </div>
+        <div class="flex gap-2">
+            <a href="{% url 'dashboard:operations-summary-export-pdf' %}{% if request.GET.urlencode %}?{{ request.GET.urlencode }}{% endif %}"
+               class="bg-slate-900 text-white px-4 py-2 rounded-xl font-bold hover:bg-slate-800 transition">
+                Export PDF
+            </a>
+            <a href="{% url 'dashboard:operations-summary-export-csv' %}{% if request.GET.urlencode %}?{{ request.GET.urlencode }}{% endif %}"
+               class="bg-green-500 text-white px-4 py-2 rounded-xl font-bold hover:bg-green-600 transition">
+                Export CSV
+            </a>
+        </div>
+    </div>
+
+    <div class="bg-white p-6 rounded-2xl shadow-lg">
+        <form method="get" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-2">Truck</label>
+                {{ filter_form.truck }}
+            </div>
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-2">Date From</label>
+                {{ filter_form.date_from }}
+            </div>
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-2">Date To</label>
+                {{ filter_form.date_to }}
+            </div>
+            <div class="md:col-span-3 flex justify-end">
+                <button type="submit" class="bg-slate-900 text-white px-6 py-2 rounded-xl font-bold hover:bg-slate-800 transition">
+                    Filter
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="bg-white p-4 rounded-2xl shadow-lg">
+            <p class="text-sm text-gray-600">Coal Trips</p>
+            <p class="text-2xl font-black text-slate-900">{{ coal_summary.total_trips }}</p>
+        </div>
+        <div class="bg-white p-4 rounded-2xl shadow-lg">
+            <p class="text-sm text-gray-600">Coal Net Weight</p>
+            <p class="text-2xl font-black text-slate-900">{{ coal_summary.total_net_weight|floatformat:2 }} t</p>
+        </div>
+        <div class="bg-white p-4 rounded-2xl shadow-lg">
+            <p class="text-sm text-gray-600">Coal Diesel Cost</p>
+            <p class="text-2xl font-black text-slate-900">₹{{ coal_summary.total_diesel_cost|floatformat:2 }}</p>
+        </div>
+        <div class="bg-white p-4 rounded-2xl shadow-lg">
+            <p class="text-sm text-gray-600">Mining Entries</p>
+            <p class="text-2xl font-black text-slate-900">{{ mining_summary.total_entries }}</p>
+        </div>
+        <div class="bg-white p-4 rounded-2xl shadow-lg">
+            <p class="text-sm text-gray-600">Mining Tonnage</p>
+            <p class="text-2xl font-black text-slate-900">{{ mining_summary.total_tonnage|floatformat:2 }} t</p>
+        </div>
+        <div class="bg-white p-4 rounded-2xl shadow-lg">
+            <p class="text-sm text-gray-600">Mining Mix</p>
+            <p class="text-2xl font-black text-slate-900">{{ mining_summary.dispatch_count }}/{{ mining_summary.purchase_count }}</p>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="bg-white p-6 rounded-2xl shadow-lg">
+            <h3 class="text-lg font-semibold text-slate-900 mb-4">Coal Log Details</h3>
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead class="bg-slate-50">
+                        <tr>
+                            <th class="px-4 py-3 text-left text-sm font-semibold text-slate-900">Date</th>
+                            <th class="px-4 py-3 text-left text-sm font-semibold text-slate-900">Truck</th>
+                            <th class="px-4 py-3 text-left text-sm font-semibold text-slate-900">Pass</th>
+                            <th class="px-4 py-3 text-left text-sm font-semibold text-slate-900">Net</th>
+                            <th class="px-4 py-3 text-left text-sm font-semibold text-slate-900">Diesel</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-200">
+                        {% for log in coal_logs %}
+                        <tr>
+                            <td class="px-4 py-3 text-sm text-gray-500">{{ log.date }}</td>
+                            <td class="px-4 py-3 text-sm font-medium text-slate-900">{{ log.truck.plate_number }}</td>
+                            <td class="px-4 py-3 text-sm text-gray-500">{{ log.pass_no }}</td>
+                            <td class="px-4 py-3 text-sm text-gray-500">{{ log.net_weight|floatformat:2 }}</td>
+                            <td class="px-4 py-3 text-sm text-gray-500">{{ log.diesel_liters|floatformat:2 }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" class="px-4 py-3 text-center text-gray-500">No coal logs found.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="bg-white p-6 rounded-2xl shadow-lg">
+            <h3 class="text-lg font-semibold text-slate-900 mb-4">Mining Log Details</h3>
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead class="bg-slate-50">
+                        <tr>
+                            <th class="px-4 py-3 text-left text-sm font-semibold text-slate-900">Date</th>
+                            <th class="px-4 py-3 text-left text-sm font-semibold text-slate-900">Truck</th>
+                            <th class="px-4 py-3 text-left text-sm font-semibold text-slate-900">Chalan</th>
+                            <th class="px-4 py-3 text-left text-sm font-semibold text-slate-900">Customer</th>
+                            <th class="px-4 py-3 text-left text-sm font-semibold text-slate-900">Net</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-200">
+                        {% for log in mining_logs %}
+                        <tr>
+                            <td class="px-4 py-3 text-sm text-gray-500">{{ log.date }}</td>
+                            <td class="px-4 py-3 text-sm font-medium text-slate-900">{{ log.truck.plate_number }}</td>
+                            <td class="px-4 py-3 text-sm text-gray-500">{{ log.chalan_no }}</td>
+                            <td class="px-4 py-3 text-sm text-gray-500">{{ log.customer_name }}</td>
+                            <td class="px-4 py-3 text-sm text-gray-500">{{ log.net|floatformat:2 }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" class="px-4 py-3 text-center text-gray-500">No mining logs found.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
