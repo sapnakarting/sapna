@@ -3,8 +3,14 @@
     {% if user.is_authenticated %}
     <!-- Dashboard -->
     <a href="{% url 'dashboard:index' %}"
-       class="nav-link px-3 py-2 rounded-lg text-white hover:text-amber-500 transition-colors font-semibold {% if request.resolver_match.namespace == 'dashboard' %}bg-slate-800 text-amber-500{% endif %}">
+       class="nav-link px-3 py-2 rounded-lg text-white hover:text-amber-500 transition-colors font-semibold {% if request.resolver_match.namespace == 'dashboard' and request.resolver_match.url_name == 'index' %}bg-slate-800 text-amber-500{% endif %}">
         Dashboard
+    </a>
+
+    <!-- Reports -->
+    <a href="{% url 'dashboard:report-index' %}"
+       class="nav-link px-3 py-2 rounded-lg text-white hover:text-amber-500 transition-colors font-semibold {% if '/dashboard/reports' in request.path %}bg-slate-800 text-amber-500{% endif %}">
+        Reports
     </a>
 
     <!-- Fleet Management Dropdown -->
