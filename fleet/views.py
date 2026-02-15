@@ -7,7 +7,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse_lazy, reverse
 from django.utils import timezone
 from django.views import View
-from django.views.generic import ListView, CreateView, UpdateView, DeleteView, DetailView
+from django.views.generic import ListView, CreateView, UpdateView, DeleteView, DetailView, TemplateView
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.http import JsonResponse
 
@@ -20,7 +20,7 @@ from django.views.decorators.http import require_http_methods
 
 from .forms import LoginForm, UserCreationForm, TruckForm, TruckSearchForm, DriverForm, FuelLogForm, DieselPriceForm, TireInventoryForm, TireActionForm, TireSearchForm, DailyOdoRegistryForm, DailyOdoRegistrySearchForm, BulkDailyOdoEntryForm, BulkDailyOdoEntryFormSet
 from .models import UserProfile, Truck, Driver, FuelLog, TireInventory, DieselPrice, DailyOdoRegistry
-from .utils.permissions import is_admin_required, is_fuel_agent_required
+from .utils.permissions import is_admin_required, is_fuel_agent_required, AdminRequiredMixin
 
 
 class LoginView(View):
