@@ -60,4 +60,17 @@ urlpatterns = [
     path('alerts/<int:pk>/dismiss/', views_alerts.dismiss_alert, name='alert-dismiss'),
     path('alerts/bulk-resolve/', views_alerts.bulk_resolve_alerts, name='alert-bulk-resolve'),
     path('alerts/stats/', views_alerts.get_alert_stats, name='alert-stats'),
+    
+    # Daily Odometer Registry
+    path('daily-odometer/', views.DailyOdoRegistryListView.as_view(), name='daily-odo-list'),
+    path('daily-odometer/<int:pk>/', views.DailyOdoRegistryDetailView.as_view(), name='daily-odo-detail'),
+    path('daily-odometer/create/', views.DailyOdoRegistryCreateView.as_view(), name='daily-odo-create'),
+    path('daily-odometer/bulk-create/', views.BulkDailyOdoEntryView.as_view(), name='daily-odo-bulk-create'),
+    path('daily-odometer/<int:pk>/edit/', views.DailyOdoRegistryUpdateView.as_view(), name='daily-odo-update'),
+    path('daily-odometer/<int:pk>/delete/', views.DailyOdoRegistryDeleteView.as_view(), name='daily-odo-delete'),
+    path('daily-odometer/report/', views.DailyOdoReportView.as_view(), name='daily-odo-report'),
+    path('daily-odometer/export-csv/', views.DailyOdoExportCSV.as_view(), name='daily-odo-export-csv'),
+    path('daily-odometer/fleet-summary/', views.FleetMileageSummaryView.as_view(), name='fleet-mileage-summary'),
+    path('daily-odometer/discrepancy/', views.OdometerDiscrepancyReportView.as_view(), name='odometer-discrepancy'),
+    path('api/truck-odometer/<int:truck_id>/', views.get_truck_current_odometer, name='get-truck-odometer'),
 ]

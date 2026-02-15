@@ -1,0 +1,132 @@
+{% extends 'base.html' %}
+{% block breadcrumbs %}
+{% include 'components/breadcrumbs.html' with breadcrumbs=breadcrumbs %}
+{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Header -->
+    <div class="flex justify-between items-center">
+        <div>
+            <h1 class="text-3xl font-black text-slate-900">Bulk Daily Odometer Entry</h1>
+            <p class="text-gray-600">Enter odometer readings for all active trucks</p>
+        </div>
+    </div>
+    
+    <!-- Date Selection -->
+    <div class="bg-white p-6 rounded-2xl shadow-lg">
+        <form method="post" class="space-y-6">
+            {% csrf_token %}
+            
+            <div class="flex flex-col md:flex-row justify-between items-end gap-4">
+                <div class="flex-1">
+                    <label for="date" class="block text-sm font-semibold text-gray-700 mb-2">
+                        Date*
+                    </label>
+                    <input type="date" name="date" id="date" value="{{ date }}" 
+                        class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-slate-500 focus:border-transparent">
+                </div>
+                
+                <div class="flex gap-2">
+                    <button type="submit" 
+                        class="px-6 py-2 bg-slate-900 text-white rounded-xl font-bold hover:bg-slate-800 transition-colors">
+                        Save All Entries
+                    </button>
+                    <a href="{% url 'fleet:daily-odo-list' %}" 
+                        class="px-6 py-2 bg-white border border-gray-300 rounded-xl font-bold text-gray-700 hover:bg-gray-50 transition-colors">
+                        Cancel
+                    </a>
+                </div>
+            </div>
+            
+            {% if formset.non_form_errors %}
+            <div class="p-4 bg-rose-50 border border-rose-200 rounded-lg">
+                {% for error in formset.non_form_errors %}
+                <p class="text-sm text-rose-600">{{ error }}</p>
+                {% endfor %}
+            </div>
+            {% endif %}
+            
+            <!-- Truck Entries Table -->
+            <div class="mt-6 overflow-x-auto">
+                <table class="w-full">
+                    <thead class="bg-slate-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-sm font-semibold text-slate-900">Truck</th>
+                            <th class="px-6 py-3 text-left text-sm font-semibold text-slate-900">Opening ODO</th>
+                            <th class="px-6 py-3 text-left text-sm font-semibold text-slate-900">Closing ODO</th>
+                            <th class="px-6 py-3 text-left text-sm font-semibold text-slate-900">Daily Mileage</th>
+                            <th class="px-6 py-3 text-left text-sm font-semibold text-slate-900">Remarks</th>
+                            <th class="px-6 py-3 text-left text-sm font-semibold text-slate-900">Skip</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-200">
+                        {% for truck in trucks %}
+                        <tr class="{% if forloop.counter|divisibleby:2 %}bg-gray-50{% endif %}">
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <input type="hidden" name="form-{{ forloop.counter0 }}-truck_id" value="{{ truck.pk }}">
+                                <input type="text" name="form-{{ forloop.counter0 }}-truck_name" 
+                                    value="{{ truck.plate_number }}" 
+                                    class="w-full px-4 py-2 border border-gray-300 rounded-xl bg-gray-100" disabled>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <input type="number" name="form-{{ forloop.counter0 }}-opening_odometer" 
+                                    value="{{ truck.current_odometer }}" 
+                                    class="w-full px-4 py-2 border border-gray-300 rounded-xl bg-gray-100" disabled>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <input type="number" name="form-{{ forloop.counter0 }}-closing_odometer" 
+                                    value="" min="0" 
+                                    class="w-full px-4 py-2 border border-gray-300 rounded-xl odometer-input" 
+                                    data-truck-id="{{ truck.pk }}" data-opening="{{ truck.current_odometer }}">
+                                {% if formset.forms.forloop.counter0.closing_odometer.errors %}
+                                <p class="mt-1 text-sm text-rose-600">{{ formset.forms.forloop.counter0.closing_odometer.errors.0 }}</p>
+                                {% endif %}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="font-bold mileage-display" data-truck-id="{{ truck.pk }}">0 km</span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <input type="text" name="form-{{ forloop.counter0 }}-remarks" 
+                                    placeholder="Remarks..." 
+                                    class="w-full px-4 py-2 border border-gray-300 rounded-xl">
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-center">
+                                <input type="checkbox" name="form-{{ forloop.counter0 }}-skip" 
+                                    class="h-4 w-4 text-slate-600 border-gray-300 rounded">
+                                <label class="ml-2 text-sm text-gray-600">Skip</label>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+            <div class="mt-6 flex justify-end gap-2">
+                <button type="submit" 
+                    class="px-6 py-2 bg-slate-900 text-white rounded-xl font-bold hover:bg-slate-800 transition-colors">
+                    Save All Entries
+                </button>
+                <a href="{% url 'fleet:daily-odo-list' %}" 
+                    class="px-6 py-2 bg-white border border-gray-300 rounded-xl font-bold text-gray-700 hover:bg-gray-50 transition-colors">
+                    Cancel
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+// Calculate daily mileage on the fly
+$(document).ready(function() {
+    $('.odometer-input').on('input', function() {
+        var truckId = $(this).data('truck-id');
+        var opening = parseInt($(this).data('opening'));
+        var closing = parseInt($(this).val()) || 0;
+        var mileage = Math.max(closing - opening, 0);
+        
+        $('.mileage-display[data-truck-id="' + truckId + '"]').text(mileage + ' km');
+    });
+});
+</script>
+{% endblock %}

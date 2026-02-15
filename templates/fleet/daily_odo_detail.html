@@ -1,0 +1,170 @@
+{% extends 'base.html' %}
+{% block breadcrumbs %}
+{% include 'components/breadcrumbs.html' with breadcrumbs=breadcrumbs %}
+{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Header -->
+    <div class="flex justify-between items-center">
+        <div>
+            <h1 class="text-3xl font-black text-slate-900">Daily Odometer Entry Details</h1>
+            <p class="text-gray-600">Entry #{{ entry.id }} - {{ entry.date }}</p>
+        </div>
+        <div class="flex gap-2">
+            {% if user.userprofile.is_admin %}
+            <a href="{% url 'fleet:daily-odo-update' entry.pk %}" 
+                class="bg-blue-500 text-white px-4 py-2 rounded-xl font-bold hover:bg-blue-600 transition-colors">
+                Edit
+            </a>
+            <a href="{% url 'fleet:daily-odo-delete' entry.pk %}" 
+                class="bg-rose-500 text-white px-4 py-2 rounded-xl font-bold hover:bg-rose-600 transition-colors">
+                Delete
+            </a>
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- Entry Details -->
+    <div class="bg-white p-6 rounded-2xl shadow-lg">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+                <h3 class="text-lg font-semibold text-slate-900 mb-4">Truck Information</h3>
+                <div class="space-y-3">
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">Plate Number:</span>
+                        <span class="font-semibold text-slate-900">{{ entry.truck.plate_number }}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">Transporter:</span>
+                        <span class="font-semibold text-slate-900">{{ entry.truck.transporter_name }}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">Wheel Configuration:</span>
+                        <span class="font-semibold text-slate-900">{{ entry.truck.get_wheel_config_display }}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">Fleet Type:</span>
+                        <span class="font-semibold text-slate-900">{{ entry.truck.get_fleet_type_display }}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">Status:</span>
+                        <span class="font-semibold text-slate-900">{{ entry.truck.get_status_display }}</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div>
+                <h3 class="text-lg font-semibold text-slate-900 mb-4">Odometer Readings</h3>
+                <div class="space-y-3">
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">Date:</span>
+                        <span class="font-semibold text-slate-900">{{ entry.date }}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">Opening Odometer:</span>
+                        <span class="font-semibold text-slate-900">{{ entry.opening_odometer }} km</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">Closing Odometer:</span>
+                        <span class="font-semibold text-slate-900">{{ entry.closing_odometer }} km</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">Daily Mileage:</span>
+                        <span class="font-bold text-2xl {% if entry.daily_mileage > 500 %}text-red-600{% elif entry.daily_mileage > 300 %}text-amber-600{% else %}text-green-600{% endif %}">
+                            {{ entry.daily_mileage }} km
+                        </span>
+                    </div>
+                    {% if entry.remarks %}
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">Remarks:</span>
+                        <span class="font-semibold text-slate-900">{{ entry.remarks }}</span>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Navigation -->
+    <div class="bg-white p-6 rounded-2xl shadow-lg">
+        <div class="flex justify-between items-center">
+            <div>
+                {% if previous_entry %}
+                <a href="{% url 'fleet:daily-odo-detail' previous_entry.pk %}" 
+                    class="inline-flex items-center gap-2 text-slate-600 hover:text-slate-900">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                    </svg>
+                    Previous: {{ previous_entry.date }}
+                </a>
+                {% else %}
+                <span class="text-gray-400">No previous entry</span>
+                {% endif %}
+            </div>
+            
+            <div>
+                {% if next_entry %}
+                <a href="{% url 'fleet:daily-odo-detail' next_entry.pk %}" 
+                    class="inline-flex items-center gap-2 text-slate-600 hover:text-slate-900">
+                    Next: {{ next_entry.date }}
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                    </svg>
+                </a>
+                {% else %}
+                <span class="text-gray-400">No next entry</span>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Odometer History -->
+    <div class="bg-white p-6 rounded-2xl shadow-lg">
+        <h3 class="text-lg font-semibold text-slate-900 mb-4">Recent Odometer History for {{ entry.truck.plate_number }}</h3>
+        
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead class="bg-slate-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-900">Date</th>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-900">Opening ODO</th>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-900">Closing ODO</th>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-900">Daily Mileage</th>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-900">Remarks</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200">
+                    {% for history_entry in odometer_history %}
+                    <tr class="{% if history_entry.id == entry.id %}bg-amber-50{% endif %}">
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ history_entry.date }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ history_entry.opening_odometer }} km</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ history_entry.closing_odometer }} km</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-bold {% if history_entry.daily_mileage > 500 %}text-red-600{% elif history_entry.daily_mileage > 300 %}text-amber-600{% else %}text-green-600{% endif %}">
+                            {{ history_entry.daily_mileage }} km
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ history_entry.remarks|truncatechars:30 }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="px-6 py-4 text-center text-gray-500">
+                            No odometer history found.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <div class="mt-4">
+            <a href="{% url 'fleet:truck-detail' entry.truck.pk %}" 
+                class="inline-flex items-center gap-2 text-slate-600 hover:text-slate-900 font-semibold">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
+                </svg>
+                View Truck Details
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

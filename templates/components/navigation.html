@@ -33,6 +33,10 @@
                    class="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 hover:text-amber-600 {% if request.resolver_match.url_name == 'tire-list' or request.resolver_match.url_name == 'tire-detail' %}bg-slate-50 text-amber-600 font-semibold{% endif %}">
                     Tire Inventory
                 </a>
+                <a href="{% url 'fleet:daily-odo-list' %}"
+                   class="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 hover:text-amber-600 {% if request.resolver_match.url_name == 'daily-odo-list' or request.resolver_match.url_name == 'daily-odo-detail' or request.resolver_match.url_name == 'daily-odo-create' or request.resolver_match.url_name == 'daily-odo-update' or request.resolver_match.url_name == 'daily-odo-bulk-create' or request.resolver_match.url_name == 'daily-odo-report' %}bg-slate-50 text-amber-600 font-semibold{% endif %}">
+                    Daily Odometer
+                </a>
             </div>
         </div>
     </div>

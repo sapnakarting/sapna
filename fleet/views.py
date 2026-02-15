@@ -18,8 +18,8 @@ from django.urls import reverse
 from django.utils.decorators import method_decorator
 from django.views.decorators.http import require_http_methods
 
-from .forms import LoginForm, UserCreationForm, TruckForm, TruckSearchForm, DriverForm, FuelLogForm, DieselPriceForm, TireInventoryForm, TireActionForm, TireSearchForm
-from .models import UserProfile, Truck, Driver, FuelLog, TireInventory, DieselPrice
+from .forms import LoginForm, UserCreationForm, TruckForm, TruckSearchForm, DriverForm, FuelLogForm, DieselPriceForm, TireInventoryForm, TireActionForm, TireSearchForm, DailyOdoRegistryForm, DailyOdoRegistrySearchForm, BulkDailyOdoEntryForm, BulkDailyOdoEntryFormSet
+from .models import UserProfile, Truck, Driver, FuelLog, TireInventory, DieselPrice, DailyOdoRegistry
 from .utils.permissions import is_admin_required, is_fuel_agent_required
 
 
@@ -943,4 +943,484 @@ def get_today_diesel_price(request):
         return JsonResponse({'price': float(today_price.price)})
     else:
         return JsonResponse({'price': 0.0})
+
+
+# Daily Odometer Registry Views
+
+class DailyOdoRegistryListView(LoginRequiredMixin, ListView):
+    model = DailyOdoRegistry
+    template_name = 'fleet/daily_odo_list.html'
+    context_object_name = 'entries'
+    paginate_by = 20
+    
+    def get_queryset(self):
+        queryset = DailyOdoRegistry.objects.all().select_related('truck').order_by('-date', 'truck')
+        
+        # Apply filters
+        truck_id = self.request.GET.get('truck')
+        if truck_id:
+            queryset = queryset.filter(truck_id=truck_id)
+        
+        date_from = self.request.GET.get('date_from')
+        if date_from:
+            queryset = queryset.filter(date__gte=date_from)
+        
+        date_to = self.request.GET.get('date_to')
+        if date_to:
+            queryset = queryset.filter(date__lte=date_to)
+        
+        search = self.request.GET.get('search')
+        if search:
+            queryset = queryset.filter(remarks__icontains=search)
+        
+        return queryset
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['search_form'] = DailyOdoRegistrySearchForm(self.request.GET)
+        
+        # Calculate stats
+        today = timezone.now().date()
+        active_trucks = Truck.objects.filter(status='ACTIVE').count()
+        today_entries = DailyOdoRegistry.objects.filter(date=today).count()
+        
+        context['stats'] = {
+            'active_trucks': active_trucks,
+            'today_entries': today_entries,
+            'completion_pct': (today_entries / active_trucks * 100) if active_trucks > 0 else 0
+        }
+        
+        # Get trucks without entries today
+        trucks_with_entries = DailyOdoRegistry.objects.filter(date=today).values_list('truck_id', flat=True)
+        context['missing_trucks'] = Truck.objects.filter(status='ACTIVE').exclude(id__in=trucks_with_entries)
+        
+        context['breadcrumbs'] = [
+            {'name': 'Fleet', 'url': None},
+            {'name': 'Daily Odometer', 'url': None}
+        ]
+        
+        return context
+
+
+class DailyOdoRegistryDetailView(LoginRequiredMixin, DetailView):
+    model = DailyOdoRegistry
+    template_name = 'fleet/daily_odo_detail.html'
+    context_object_name = 'entry'
+    pk_url_kwarg = 'pk'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        entry = self.object
+        
+        # Get previous and next entries for the same truck
+        context['previous_entry'] = DailyOdoRegistry.objects.filter(
+            truck=entry.truck, date__lt=entry.date
+        ).order_by('-date').first()
+        
+        context['next_entry'] = DailyOdoRegistry.objects.filter(
+            truck=entry.truck, date__gt=entry.date
+        ).order_by('date').first()
+        
+        # Get truck's odometer history
+        context['odometer_history'] = DailyOdoRegistry.objects.filter(
+            truck=entry.truck
+        ).order_by('date')[:10]
+        
+        context['breadcrumbs'] = [
+            {'name': 'Fleet', 'url': None},
+            {'name': 'Daily Odometer', 'url': reverse('fleet:daily-odo-list')},
+            {'name': f'Entry {entry.id}', 'url': None}
+        ]
+        
+        return context
+
+
+class DailyOdoRegistryCreateView(AdminRequiredMixin, CreateView):
+    model = DailyOdoRegistry
+    form_class = DailyOdoRegistryForm
+    template_name = 'fleet/daily_odo_form.html'
+    success_url = reverse_lazy('fleet:daily-odo-list')
+    
+    def get_initial(self):
+        initial = super().get_initial()
+        truck_id = self.request.GET.get('truck')
+        if truck_id:
+            try:
+                truck = Truck.objects.get(pk=truck_id)
+                initial['truck'] = truck
+                initial['opening_odometer'] = truck.current_odometer
+            except Truck.DoesNotExist:
+                pass
+        return initial
+    
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['request'] = self.request
+        return kwargs
+    
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        messages.success(self.request, f'Daily odometer entry created for {form.instance.truck.plate_number}!')
+        return response
+
+
+class DailyOdoRegistryUpdateView(AdminRequiredMixin, UpdateView):
+    model = DailyOdoRegistry
+    form_class = DailyOdoRegistryForm
+    template_name = 'fleet/daily_odo_form.html'
+    
+    def get_success_url(self):
+        return reverse('fleet:daily-odo-detail', kwargs={'pk': self.object.pk})
+    
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['request'] = self.request
+        return kwargs
+    
+    def form_valid(self, form):
+        # Check if closing odometer is being changed
+        old_closing = DailyOdoRegistry.objects.get(pk=self.object.pk).closing_odometer
+        new_closing = form.instance.closing_odometer
+        
+        if old_closing != new_closing:
+            messages.warning(self.request, f'Truck odometer will be updated to {new_closing} km.')
+        
+        response = super().form_valid(form)
+        messages.success(self.request, f'Daily odometer entry updated for {form.instance.truck.plate_number}!')
+        return response
+
+
+class DailyOdoRegistryDeleteView(AdminRequiredMixin, DeleteView):
+    model = DailyOdoRegistry
+    template_name = 'fleet/daily_odo_delete.html'
+    success_url = reverse_lazy('fleet:daily-odo-list')
+    context_object_name = 'entry'
+    
+    def delete(self, request, *args, **kwargs):
+        entry = self.get_object()
+        messages.warning(request, f'Truck odometer will not be automatically adjusted. You may need to update it manually.')
+        messages.success(request, f'Daily odometer entry deleted for {entry.truck.plate_number}!')
+        return super().delete(request, *args, **kwargs)
+
+
+class BulkDailyOdoEntryView(AdminRequiredMixin, View):
+    template_name = 'fleet/daily_odo_bulk_form.html'
+    
+    def get(self, request):
+        # Get all active trucks
+        active_trucks = Truck.objects.filter(status='ACTIVE').order_by('plate_number')
+        
+        # Create formset with one form per truck
+        BulkFormSet = formset_factory(
+            BulkDailyOdoEntryForm, 
+            formset=BulkDailyOdoEntryFormSet,
+            extra=0
+        )
+        
+        forms = []
+        for truck in active_trucks:
+            form = BulkDailyOdoEntryForm(truck=truck)
+            forms.append(form)
+        
+        formset = BulkFormSet(initial=[form.initial for form in forms])
+        
+        context = {
+            'formset': formset,
+            'trucks': active_trucks,
+            'date': timezone.now().date()
+        }
+        
+        return render(request, self.template_name, context)
+    
+    def post(self, request):
+        date_str = request.POST.get('date')
+        if not date_str:
+            messages.error(request, 'Date is required.')
+            return redirect('fleet:daily-odo-bulk-create')
+        
+        try:
+            date = timezone.datetime.strptime(date_str, '%Y-%m-%d').date()
+        except ValueError:
+            messages.error(request, 'Invalid date format.')
+            return redirect('fleet:daily-odo-bulk-create')
+        
+        # Get all active trucks
+        active_trucks = Truck.objects.filter(status='ACTIVE').order_by('plate_number')
+        
+        # Create formset with one form per truck
+        BulkFormSet = formset_factory(
+            BulkDailyOdoEntryForm, 
+            formset=BulkDailyOdoEntryFormSet,
+            extra=0
+        )
+        
+        formset = BulkFormSet(request.POST, date=date)
+        
+        if formset.is_valid():
+            created_count = 0
+            skipped_count = 0
+            
+            for form in formset:
+                if form.cleaned_data.get('skip', False):
+                    skipped_count += 1
+                    continue
+                
+                truck_id = form.cleaned_data.get('truck_id')
+                closing_odometer = form.cleaned_data.get('closing_odometer')
+                remarks = form.cleaned_data.get('remarks', '')
+                
+                if closing_odometer is not None:
+                    # Check if entry already exists
+                    existing = DailyOdoRegistry.objects.filter(truck_id=truck_id, date=date).first()
+                    
+                    if existing:
+                        # Update existing entry
+                        existing.closing_odometer = closing_odometer
+                        existing.remarks = remarks
+                        existing.save()
+                    else:
+                        # Create new entry
+                        truck = Truck.objects.get(pk=truck_id)
+                        entry = DailyOdoRegistry.objects.create(
+                            truck=truck,
+                            date=date,
+                            opening_odometer=truck.current_odometer,
+                            closing_odometer=closing_odometer,
+                            remarks=remarks
+                        )
+                    
+                    created_count += 1
+            
+            messages.success(request, f'Successfully processed {created_count} entries for {date}. {skipped_count} trucks were skipped.')
+            return redirect('fleet:daily-odo-list')
+        else:
+            # Re-render form with errors
+            context = {
+                'formset': formset,
+                'trucks': active_trucks,
+                'date': date
+            }
+            return render(request, self.template_name, context)
+
+
+class DailyOdoReportView(LoginRequiredMixin, ListView):
+    model = DailyOdoRegistry
+    template_name = 'fleet/daily_odo_report.html'
+    context_object_name = 'entries'
+    paginate_by = 50
+    
+    def get_queryset(self):
+        queryset = DailyOdoRegistry.objects.all().select_related('truck').order_by('-date', 'truck')
+        
+        # Apply filters
+        truck_id = self.request.GET.get('truck')
+        if truck_id:
+            queryset = queryset.filter(truck_id=truck_id)
+        
+        date_from = self.request.GET.get('date_from')
+        if date_from:
+            queryset = queryset.filter(date__gte=date_from)
+        
+        date_to = self.request.GET.get('date_to')
+        if date_to:
+            queryset = queryset.filter(date__lte=date_to)
+        
+        return queryset
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['search_form'] = DailyOdoRegistrySearchForm(self.request.GET)
+        
+        # Calculate totals
+        total_mileage = sum(entry.daily_mileage for entry in context['entries'])
+        context['total_mileage'] = total_mileage
+        
+        # Group by truck for summary
+        truck_summary = {}
+        for entry in context['entries']:
+            truck_id = entry.truck_id
+            if truck_id not in truck_summary:
+                truck_summary[truck_id] = {
+                    'truck': entry.truck,
+                    'total_mileage': 0,
+                    'entry_count': 0
+                }
+            truck_summary[truck_id]['total_mileage'] += entry.daily_mileage
+            truck_summary[truck_id]['entry_count'] += 1
+        
+        context['truck_summary'] = truck_summary
+        
+        context['breadcrumbs'] = [
+            {'name': 'Fleet', 'url': None},
+            {'name': 'Daily Odometer', 'url': reverse('fleet:daily-odo-list')},
+            {'name': 'Report', 'url': None}
+        ]
+        
+        return context
+
+
+class DailyOdoExportCSV(LoginRequiredMixin, View):
+    def get(self, request):
+        # Get filtered queryset using same filters as report
+        queryset = DailyOdoRegistry.objects.all().select_related('truck').order_by('-date', 'truck')
+        
+        truck_id = request.GET.get('truck')
+        if truck_id:
+            queryset = queryset.filter(truck_id=truck_id)
+        
+        date_from = request.GET.get('date_from')
+        if date_from:
+            queryset = queryset.filter(date__gte=date_from)
+        
+        date_to = request.GET.get('date_to')
+        if date_to:
+            queryset = queryset.filter(date__lte=date_to)
+        
+        # Create CSV response
+        import csv
+        from django.http import HttpResponse
+        
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = f'attachment; filename="daily_odometer_report_{timezone.now().date()}.csv"'
+        
+        writer = csv.writer(response)
+        writer.writerow(['Date', 'Truck', 'Opening ODO', 'Closing ODO', 'Daily Mileage', 'Remarks'])
+        
+        for entry in queryset:
+            writer.writerow([
+                entry.date,
+                entry.truck.plate_number,
+                entry.opening_odometer,
+                entry.closing_odometer,
+                entry.daily_mileage,
+                entry.remarks
+            ])
+        
+        return response
+
+
+class FleetMileageSummaryView(LoginRequiredMixin, TemplateView):
+    template_name = 'fleet/fleet_mileage_summary.html'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        
+        # Get date range from request
+        date_from = self.request.GET.get('date_from')
+        date_to = self.request.GET.get('date_to')
+        
+        # Filter queryset
+        queryset = DailyOdoRegistry.objects.all().select_related('truck')
+        
+        if date_from:
+            queryset = queryset.filter(date__gte=date_from)
+        
+        if date_to:
+            queryset = queryset.filter(date__lte=date_to)
+        
+        # Calculate mileage per truck
+        truck_mileage = {}
+        for entry in queryset:
+            truck_id = entry.truck_id
+            if truck_id not in truck_mileage:
+                truck_mileage[truck_id] = {
+                    'truck': entry.truck,
+                    'total_mileage': 0,
+                    'entry_count': 0
+                }
+            truck_mileage[truck_id]['total_mileage'] += entry.daily_mileage
+            truck_mileage[truck_id]['entry_count'] += 1
+        
+        # Sort by mileage (descending)
+        sorted_mileage = sorted(truck_mileage.values(), key=lambda x: x['total_mileage'], reverse=True)
+        
+        context['truck_mileage'] = sorted_mileage
+        context['date_from'] = date_from
+        context['date_to'] = date_to
+        
+        # Calculate grand total
+        context['grand_total'] = sum(item['total_mileage'] for item in sorted_mileage)
+        
+        context['breadcrumbs'] = [
+            {'name': 'Fleet', 'url': None},
+            {'name': 'Daily Odometer', 'url': reverse('fleet:daily-odo-list')},
+            {'name': 'Mileage Summary', 'url': None}
+        ]
+        
+        return context
+
+
+class OdometerDiscrepancyReportView(AdminRequiredMixin, TemplateView):
+    template_name = 'fleet/odometer_discrepancy_report.html'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        
+        # Get date range from request
+        date_from = self.request.GET.get('date_from')
+        date_to = self.request.GET.get('date_to')
+        truck_id = self.request.GET.get('truck')
+        
+        # Filter fuel logs and daily odometer entries
+        fuel_logs = FuelLog.objects.all()
+        daily_odos = DailyOdoRegistry.objects.all()
+        
+        if date_from:
+            fuel_logs = fuel_logs.filter(date__gte=date_from)
+            daily_odos = daily_odos.filter(date__gte=date_from)
+        
+        if date_to:
+            fuel_logs = fuel_logs.filter(date__lte=date_to)
+            daily_odos = daily_odos.filter(date__lte=date_to)
+        
+        if truck_id:
+            fuel_logs = fuel_logs.filter(truck_id=truck_id)
+            daily_odos = daily_odos.filter(truck_id=truck_id)
+        
+        # Find discrepancies
+        discrepancies = []
+        
+        for daily_odo in daily_odos:
+            # Find fuel log on same date
+            fuel_log = fuel_logs.filter(truck=daily_odo.truck, date=daily_odo.date).first()
+            
+            if fuel_log:
+                difference = abs(fuel_log.odometer - daily_odo.closing_odometer)
+                if difference > 10:  # More than 10km difference
+                    discrepancies.append({
+                        'date': daily_odo.date,
+                        'truck': daily_odo.truck,
+                        'daily_odo_closing': daily_odo.closing_odometer,
+                        'fuel_log_odometer': fuel_log.odometer,
+                        'difference': difference,
+                        'daily_odo_id': daily_odo.id,
+                        'fuel_log_id': fuel_log.id
+                    })
+        
+        # Sort by difference (descending)
+        discrepancies.sort(key=lambda x: x['difference'], reverse=True)
+        
+        context['discrepancies'] = discrepancies
+        context['date_from'] = date_from
+        context['date_to'] = date_to
+        context['truck_filter'] = truck_id
+        context['trucks'] = Truck.objects.all()
+        
+        context['breadcrumbs'] = [
+            {'name': 'Fleet', 'url': None},
+            {'name': 'Daily Odometer', 'url': reverse('fleet:daily-odo-list')},
+            {'name': 'Discrepancy Report', 'url': None}
+        ]
+        
+        return context
+
+
+@login_required
+def get_truck_current_odometer(request, truck_id):
+    """Get truck's current odometer for AJAX calls"""
+    try:
+        truck = Truck.objects.get(pk=truck_id)
+        return JsonResponse({'current_odometer': truck.current_odometer})
+    except Truck.DoesNotExist:
+        return JsonResponse({'error': 'Truck not found'}, status=404)
 

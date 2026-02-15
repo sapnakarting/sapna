@@ -1,0 +1,209 @@
+{% extends 'base.html' %}
+{% block breadcrumbs %}
+{% include 'components/breadcrumbs.html' with breadcrumbs=breadcrumbs %}
+{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Header -->
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
+            <h1 class="text-3xl font-black text-slate-900">Daily Odometer Registry</h1>
+            <p class="text-gray-600">Track daily mileage for all trucks</p>
+        </div>
+        <div class="flex gap-2">
+            {% if user.userprofile.is_admin %}
+            <a href="{% url 'fleet:daily-odo-create' %}"
+                class="bg-slate-900 text-white px-4 py-2 rounded-xl font-bold hover:bg-slate-800 transition-colors">
+                + Add Entry
+            </a>
+            <a href="{% url 'fleet:daily-odo-bulk-create' %}"
+                class="bg-amber-500 text-white px-4 py-2 rounded-xl font-bold hover:bg-amber-600 transition-colors">
+                + Bulk Entry
+            </a>
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- Stats Widget -->
+    <div class="bg-white p-6 rounded-2xl shadow-lg">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div class="bg-slate-50 p-4 rounded-xl">
+                <p class="text-sm text-gray-600">Active Trucks</p>
+                <p class="text-3xl font-black text-slate-900">{{ stats.active_trucks }}</p>
+            </div>
+            <div class="bg-slate-50 p-4 rounded-xl">
+                <p class="text-sm text-gray-600">Today's Entries</p>
+                <p class="text-3xl font-black text-slate-900">{{ stats.today_entries }}</p>
+            </div>
+            <div class="bg-slate-50 p-4 rounded-xl">
+                <p class="text-sm text-gray-600">Completion</p>
+                <p class="text-3xl font-black text-slate-900">{{ stats.completion_pct|floatformat:1 }}%</p>
+                <div class="w-full bg-gray-200 rounded-full h-2 mt-2">
+                    <div class="bg-amber-500 h-2 rounded-full" style="width: {{ stats.completion_pct }}%"></div>
+                </div>
+            </div>
+        </div>
+        
+        {% if missing_trucks.count > 0 %}
+        <div class="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+            <p class="text-sm font-semibold text-red-800">⚠️ {{ missing_trucks.count }} trucks missing entries for today:</p>
+            <div class="mt-2 flex flex-wrap gap-2">
+                {% for truck in missing_trucks %}
+                <span class="bg-red-100 text-red-800 text-xs font-medium px-2 py-1 rounded">{{ truck.plate_number }}</span>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    
+    <!-- Search & Filters -->
+    <div class="bg-white p-6 rounded-2xl shadow-lg">
+        <form method="get" class="space-y-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Truck</label>
+                    {{ search_form.truck }}
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Date From</label>
+                    {{ search_form.date_from }}
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Date To</label>
+                    {{ search_form.date_to }}
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Search Remarks</label>
+                    {{ search_form.search }}
+                </div>
+            </div>
+            
+            <div class="flex justify-end">
+                <button type="submit" class="bg-slate-900 text-white px-6 py-2 rounded-xl font-bold hover:bg-slate-800 transition-colors">
+                    Filter
+                </button>
+            </div>
+        </form>
+    </div>
+    
+    <!-- Actions -->
+    <div class="flex justify-end gap-2">
+        <a href="{% url 'fleet:daily-odo-report' %}" 
+            class="bg-white text-slate-900 px-4 py-2 rounded-xl font-bold hover:bg-gray-50 transition-colors border border-gray-200">
+            View Report
+        </a>
+        <a href="{% url 'fleet:fleet-mileage-summary' %}" 
+            class="bg-white text-slate-900 px-4 py-2 rounded-xl font-bold hover:bg-gray-50 transition-colors border border-gray-200">
+            Mileage Summary
+        </a>
+        {% if user.userprofile.is_admin %}
+        <a href="{% url 'fleet:odometer-discrepancy' %}" 
+            class="bg-white text-slate-900 px-4 py-2 rounded-xl font-bold hover:bg-gray-50 transition-colors border border-gray-200">
+            Discrepancy Report
+        </a>
+        {% endif %}
+    </div>
+    
+    <!-- Entry List -->
+    <div class="bg-white rounded-2xl shadow-lg overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead class="bg-slate-50">
+                    <tr>
+                        <th class="px-6 py-4 text-left text-sm font-semibold text-slate-900">Date</th>
+                        <th class="px-6 py-4 text-left text-sm font-semibold text-slate-900">Truck</th>
+                        <th class="px-6 py-4 text-left text-sm font-semibold text-slate-900">Opening ODO</th>
+                        <th class="px-6 py-4 text-left text-sm font-semibold text-slate-900">Closing ODO</th>
+                        <th class="px-6 py-4 text-left text-sm font-semibold text-slate-900">Daily Mileage</th>
+                        <th class="px-6 py-4 text-left text-sm font-semibold text-slate-900">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200">
+                    {% for entry in entries %}
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ entry.date }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900">{{ entry.truck.plate_number }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ entry.opening_odometer }} km</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ entry.closing_odometer }} km</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-bold {% if entry.daily_mileage > 500 %}text-red-600{% elif entry.daily_mileage > 300 %}text-amber-600{% else %}text-green-600{% endif %}">
+                            {{ entry.daily_mileage }} km
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                            <div class="flex items-center gap-2">
+                                <a href="{% url 'fleet:daily-odo-detail' entry.pk %}" 
+                                    class="text-slate-600 hover:text-slate-900" title="View">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                                    </svg>
+                                </a>
+                                {% if user.userprofile.is_admin %}
+                                <a href="{% url 'fleet:daily-odo-update' entry.pk %}" 
+                                    class="text-blue-600 hover:text-blue-900" title="Edit">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path>
+                                    </svg>
+                                </a>
+                                <a href="{% url 'fleet:daily-odo-delete' entry.pk %}" 
+                                    class="text-rose-600 hover:text-rose-900" title="Delete">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                    </svg>
+                                </a>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="px-6 py-4 text-center text-gray-500">
+                            No daily odometer entries found.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Pagination -->
+        {% if is_paginated %}
+        <div class="px-6 py-4 bg-slate-50">
+            <div class="flex justify-between items-center">
+                <div>
+                    <p class="text-sm text-gray-700">
+                        Showing {{ page_obj.start_index }} to {{ page_obj.end_index }} of {{ paginator.count }} entries
+                    </p>
+                </div>
+                <div class="flex gap-2">
+                    {% if page_obj.has_previous %}
+                    <a href="?page=1{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" 
+                        class="px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50">
+                        &laquo; First
+                    </a>
+                    <a href="?page={{ page_obj.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" 
+                        class="px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50">
+                        &lsaquo; Previous
+                    </a>
+                    {% endif %}
+                    
+                    {% if page_obj.has_next %}
+                    <a href="?page={{ page_obj.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" 
+                        class="px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50">
+                        Next &rsaquo;
+                    </a>
+                    <a href="?page={{ paginator.num_pages }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" 
+                        class="px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50">
+                        Last &raquo;
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
